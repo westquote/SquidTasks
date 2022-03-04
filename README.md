@@ -2,13 +2,6 @@
 
 [TOC]
 
-About Squid::Tasks
-=================
-
-Squid::Tasks is a header-only C++ library that implements high-level coroutine-based tasks.  It was originally designed for use in video game development, but has uses within various other problem domains.
-
-Squid::Tasks was written by Tim Ambrogi Saxon and Elliott Mahler at Giant Squid Studios, and is freely available under the MIT license.
-
 Overview of Squid::Tasks
 ========================
 
@@ -190,9 +183,7 @@ Next Steps
 
 Hopefully, this brief tutorial has given you an outline of the steps required to integrate coroutines into your own projects. From here, we recommend exploring the "GeneriQuest" sample project under ```samples/Sample_TextGame```.  It demonstrates both simple and complex applications of coroutines in a simple text-based game example.
 
-This is the end of the tutorial documentation (for now)! If you made it this far, please contact us at tim@giantsquidstudios.com to let us know any ways in which our documentation could have been more useful for you in learning to use Squid::Tasks!
-
-Thank you for being one of our "early readers!" We appreciate your help in making this library a success. :)
+This is the end of the tutorial documentation (for now)! If you made it this far, feel free to write to [tim at giantsquidstudios.com] to let us know any ways in which our documentation could have been more useful for you in learning to use Squid::Tasks!
 
 Appendices
 ==========
