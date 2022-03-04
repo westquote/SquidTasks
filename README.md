@@ -32,7 +32,7 @@ C++ coroutines were only formally added to the standard with C++20.  In order to
 
 In __Visual Studio__, this is done by right-clicking your project and selecting Properties.  Then navigate to Configuration Properties -> C/C++ -> Command Line, and add ```/await``` to “Additional Options”.
 
-(__IMPORTANT NOTE:__ If you are using C++17, you should instead add ```/await:strict```  to "Additional Options", as above.)
+(__IMPORTANT NOTE:__ If you are using C++17, you should instead add ```/await:strict```  to "Additional Options", as shown below.)
 
 ![Enabling Coroutines in Visual Studio](images/setup02.png "Enabling Coroutines in Visual Studio")
 
