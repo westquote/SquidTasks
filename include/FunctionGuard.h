@@ -53,7 +53,7 @@
 
 NAMESPACE_SQUID_BEGIN
 
-template <typename tFn = TFunction<void()>>
+template <typename tFn = std::function<void()>>
 class FunctionGuard
 {
 public:
@@ -62,7 +62,7 @@ public:
 	{
 	}
 	FunctionGuard(tFn in_fn) /// Functor constructor
-		: m_fn(MoveTemp(in_fn))
+		: m_fn(std::move(in_fn))
 	{
 	}
 	~FunctionGuard() /// Destructor
@@ -70,13 +70,13 @@ public:
 		Execute();
 	}
 	FunctionGuard(FunctionGuard&& in_other) noexcept /// Move constructor
-		: m_fn(MoveTemp(in_other.m_fn))
+		: m_fn(std::move(in_other.m_fn))
 	{
 		in_other.Forget();
 	}
 	FunctionGuard& operator=(FunctionGuard<tFn>&& in_other) noexcept /// Move assignment operator
 	{
-		m_fn = MoveTemp(in_other.m_fn);
+		m_fn = std::move(in_other.m_fn);
 		in_other.Forget();
 		return *this;
 	}
@@ -97,30 +97,30 @@ public:
 	{
 		if(m_fn)
 		{
-			m_fn.GetValue()();
+			m_fn.value()();
 			Forget();
 		}
 	}
 	void Forget() noexcept /// Clear the functor (without calling it)
 	{
-		m_fn.Reset();
+		m_fn.reset();
 	}
 
 private:
-	TOptional<tFn> m_fn; // The function to call when this scope guard is destroyed
+	std::optional<tFn> m_fn; // The function to call when this scope guard is destroyed
 };
 
 /// Create a function guard (directly stores the concretely-typed functor in the FunctionGuard)
 template <typename tFn>
 FunctionGuard<tFn> MakeFnGuard(tFn in_fn)
 {
-	return FunctionGuard<tFn>(MoveTemp(in_fn));
+	return FunctionGuard<tFn>(std::move(in_fn));
 }
 
 /// Create a generic function guard (preferable when re-assigning new functor values to the same variable)
-inline FunctionGuard<> MakeGenericFnGuard(TFunction<void()> in_fn)
+inline FunctionGuard<> MakeGenericFnGuard(std::function<void()> in_fn)
 {
-	return FunctionGuard<>(MoveTemp(in_fn));
+	return FunctionGuard<>(std::move(in_fn));
 }
 
 NAMESPACE_SQUID_END

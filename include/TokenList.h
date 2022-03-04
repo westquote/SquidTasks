@@ -75,11 +75,11 @@ class TokenList;
 /// @details In most circumstances, name should be set to \ref __FUNCTION__ at the point of creation.
 struct Token
 {
-	Token(FString in_name)
-		: name(MoveTemp(in_name))
+	Token(std::string in_name)
+		: name(std::move(in_name))
 	{
 	}
-	FString name; // Used for debug only
+	std::string name; // Used for debug only
 };
 
 /// @brief Handle to a TokenList element that stores both a debug name and associated data
@@ -87,26 +87,26 @@ struct Token
 template <typename tData>
 struct DataToken
 {
-	DataToken(FString in_name, tData in_data)
-		: name(MoveTemp(in_name))
-		, data(MoveTemp(in_data))
+	DataToken(std::string in_name, tData in_data)
+		: name(std::move(in_name))
+		, data(std::move(in_data))
 	{
 	}
-	FString name; // Used for debug only
+	std::string name; // Used for debug only
 	tData data;
 };
 
 /// Create a token with the specified debug name
-inline TSharedPtr<Token> MakeToken(FString in_name)
+inline std::shared_ptr<Token> MakeToken(std::string in_name)
 {
-	return MakeShared<Token>(MoveTemp(in_name));
+	return std::make_shared<Token>(std::move(in_name));
 }
 
 /// Create a token with the specified debug name and associated data
 template <typename tData>
-TSharedPtr<DataToken<tData>> MakeToken(FString in_name, tData in_data)
+std::shared_ptr<DataToken<tData>> MakeToken(std::string in_name, tData in_data)
 {
-	return MakeShared<DataToken<tData>>(MoveTemp(in_name), MoveTemp(in_data));
+	return std::make_shared<DataToken<tData>>(std::move(in_name), std::move(in_data));
 }
 
 /// @brief Container for tracking decentralized state across multiple tasks. (See \ref Tokens for more info...)
@@ -120,46 +120,57 @@ public:
 
 	/// Create a token with the specified debug name
 	template <typename U = T, typename std::enable_if_t<std::is_void<U>::value>* = nullptr>
-	static TSharedPtr<Token> MakeToken(FString in_name)
+	static std::shared_ptr<Token> MakeToken(std::string in_name)
 	{
-		return MakeShared<Token>(MoveTemp(in_name));
+		return std::make_shared<Token>(std::move(in_name));
 	}
 
 	/// Create a token with the specified debug name and associated data
 	template <typename U = T, typename std::enable_if_t<!std::is_void<U>::value>* = nullptr>
-	static TSharedPtr<Token> MakeToken(FString in_name, U in_data)
+	static std::shared_ptr<Token> MakeToken(std::string in_name, U in_data)
 	{
-		return MakeShared<Token>(MoveTemp(in_name), MoveTemp(in_data));
+		return std::make_shared<Token>(std::move(in_name), std::move(in_data));
 	}
 
 	/// Create and add a token with the specified debug name
 	template <typename U = T, typename std::enable_if_t<std::is_void<U>::value>* = nullptr>
-	SQUID_NODISCARD TSharedPtr<Token> TakeToken(FString in_name)
+	SQUID_NODISCARD std::shared_ptr<Token> TakeToken(std::string in_name)
 	{
-		return AddToken(MakeToken(MoveTemp(in_name)));
+		return AddTokenInternal(MakeToken(std::move(in_name)));
 	}
 
 	/// Create and add a token with the specified debug name and associated data
 	template <typename U = T, typename std::enable_if_t<!std::is_void<U>::value>* = nullptr>
-	SQUID_NODISCARD TSharedPtr<Token> TakeToken(FString in_name, U in_data)
+	SQUID_NODISCARD std::shared_ptr<Token> TakeToken(std::string in_name, U in_data)
 	{
-		return AddToken(MakeToken(MoveTemp(in_name), MoveTemp(in_data)));
+		return AddTokenInternal(MakeToken(std::move(in_name), std::move(in_data)));
 	}
 
 	/// Add an existing token to this container
-	TSharedPtr<Token> AddToken(TSharedPtr<Token> in_token)
+	std::shared_ptr<Token> AddToken(std::shared_ptr<Token> in_token)
 	{
 		SQUID_RUNTIME_CHECK(in_token, "Cannot add null token");
-		Sanitize();
-		m_tokens.AddUnique(in_token);
+		auto foundIter = std::find_if(m_tokens.begin(), m_tokens.end(), [&in_token](const std::weak_ptr<Token> in_iterToken){ 
+			return in_iterToken.lock() == in_token; 
+		});
+
+		if(foundIter == m_tokens.end()) // Prevent duplicate tokens
+		{
+			return AddTokenInternal(in_token);
+		}
 		return in_token;
 	}
 
 	/// Explicitly remove a token from this container
-	void RemoveToken(TSharedPtr<Token> in_token)
+	void RemoveToken(std::shared_ptr<Token> in_token)
 	{
 		// Find and remove the token
-		m_tokens.Remove(in_token);
+		if(m_tokens.size())
+		{
+			m_tokens.erase(std::remove_if(m_tokens.begin(), m_tokens.end(), [&in_token](const std::weak_ptr<Token>& in_otherToken) {
+				return !in_otherToken.owner_before(in_token) && !in_token.owner_before(in_otherToken);
+			}), m_tokens.end());
+		}
 	}
 
 	/// Convenience conversion operator that calls HasTokens()
@@ -172,27 +183,27 @@ public:
 	bool HasTokens() const
 	{
 		// Return true when holding any unexpired tokens
-		for(auto i = (int32_t)(m_tokens.Num() - 1); i >= 0; --i)
+		for(auto i = (int32_t)(m_tokens.size() - 1); i >= 0; --i)
 		{
 			const auto& token = m_tokens[i];
-			if(token.IsValid())
+			if(!token.expired())
 			{
 				return true;
 			}
-			m_tokens.Pop(); // Because the token is expired, we can safely remove it from the back
+			m_tokens.pop_back(); // Because the token is expired, we can safely remove it from the back
 		}
 		return false;
 	}
 
 	/// Returns an array of all live token data
-	TArray<T> GetTokenData() const
+	std::vector<T> GetTokenData() const
 	{
-		TArray<T> tokenData;
+		std::vector<T> tokenData;
 		for(const auto& tokenWeak : m_tokens)
 		{
-			if(auto token = tokenWeak.Pin())
+			if(auto token = tokenWeak.lock())
 			{
-				tokenData.Add(token->data);
+				tokenData.push_back(token->data);
 			}
 		}
 		return tokenData;
@@ -203,25 +214,25 @@ public:
 	/// @{
 	
 	/// Returns associated data from the least-recently-added live token
-	TOptional<T> GetLeastRecent() const
+	std::optional<T> GetLeastRecent() const
 	{
 		Sanitize();
-		return m_tokens.Num() ? m_tokens[0].Pin()->data : TOptional<T>{};
+		return m_tokens.size() ? m_tokens.front().lock()->data : std::optional<T>{};
 	}
 
 	/// Returns associated data from the most-recently-added live token
-	TOptional<T> GetMostRecent() const
+	std::optional<T> GetMostRecent() const
 	{
 		Sanitize();
-		return m_tokens.Num() ? m_tokens.Last().Pin()->data : TOptional<T>{};
+		return m_tokens.size() ? m_tokens.back().lock()->data : std::optional<T>{};
 	}
 
 	/// Returns smallest associated data from the set of live tokens
-	TOptional<T> GetMin() const
+	std::optional<T> GetMin() const
 	{
-		TOptional<T> ret;
+		std::optional<T> ret;
 		SanitizeAndProcessData([&ret](const T& in_data) {
-			if(!ret || in_data < ret.GetValue())
+			if(!ret || in_data < ret.value())
 			{
 				ret = in_data;
 			}
@@ -230,11 +241,11 @@ public:
 	}
 
 	/// Returns largest associated data from the set of live tokens
-	TOptional<T> GetMax() const
+	std::optional<T> GetMax() const
 	{
-		TOptional<T> ret;
+		std::optional<T> ret;
 		SanitizeAndProcessData([&ret](const T& in_data) {
-			if(!ret || in_data > ret.GetValue())
+			if(!ret || in_data > ret.value())
 			{
 				ret = in_data;
 			}
@@ -243,16 +254,16 @@ public:
 	}
 
 	/// Returns arithmetic mean of all associated data from the set of live tokens
-	TOptional<double> GetMean() const
+	std::optional<double> GetMean() const
 	{
-		TOptional<double> ret;
-		TOptional<double> total;
+		std::optional<double> ret;
+		std::optional<double> total;
 		SanitizeAndProcessData([&total](const T& in_data) {
-			total = total.Get(0.0) + (double)in_data;
+			total = total.value_or(0.0) + (double)in_data;
 		});
 		if(total)
 		{
-			ret = total.GetValue() / m_tokens.Num();
+			ret = total.value() / m_tokens.size();
 		}
 		return ret;
 	}
@@ -273,46 +284,70 @@ public:
 	///@} end of Data Queries
 
 	/// Returns a debug string containing a list of the debug names of all live tokens
-	FString GetDebugString() const 
+	std::string GetDebugString() const 
 	{
-		TArray<FString> tokenStrings;
-		for(auto token : m_tokens)
+		std::vector<std::string> tokenStrings;
+		std::string debugStr;
+		for(const auto& token : m_tokens) 
 		{
-			if(token.IsValid())
+			if(!token.expired())
 			{
-				tokenStrings.Add(token.Pin()->name);
+				if(debugStr.size() > 0)
+				{
+					debugStr += "\n";
+				}
+				debugStr += token.lock()->name;
 			}
 		}
-		if(tokenStrings.Num())
+		if(debugStr.size() == 0)
 		{
-			return FString::Join(tokenStrings, TEXT("\n"));
+			debugStr = "[no tokens]";
 		}
-		return TEXT("[no tokens]");
+		return debugStr;
 	}
 
 private:
+	// Shared internal implementation for adding tokens
+	std::shared_ptr<Token> AddTokenInternal(std::shared_ptr<Token> in_token)
+	{
+		Sanitize();
+		m_tokens.push_back(in_token);
+		return in_token;
+	}
+
 	// Sanitation
 	void Sanitize() const
 	{
 		// Remove all invalid tokens
-		m_tokens.RemoveAll([](const Wp<Token>& in_token) { return !in_token.IsValid(); });
+		if(m_tokens.size())
+		{
+			m_tokens.erase(std::remove_if(m_tokens.begin(), m_tokens.end(), [](const std::weak_ptr<Token>& in_token) {
+				return in_token.expired();
+			}), m_tokens.end());
+		}
 	}
 	template <typename tFn>
 	void SanitizeAndProcessData(tFn in_dataFn) const
 	{
 		// Remove all invalid tokens while applying a processing function on each valid token
-		m_tokens.RemoveAll([&in_dataFn](const TWeakPtr<Token>& in_token) {
-			if(auto pinnedToken = in_token.Pin())
-			{
-				in_dataFn(pinnedToken->data);
+		if(m_tokens.size())
+		{
+			m_tokens.erase(std::remove_if(m_tokens.begin(), m_tokens.end(), [&in_dataFn](const std::weak_ptr<Token>& in_token) {
+				if(in_token.expired())
+				{
+					return true;
+				}
+				if(auto token = in_token.lock())
+				{
+					in_dataFn(token->data);
+				}
 				return false;
-			}
-			return true;
-		});
+			}), m_tokens.end());
+		}
 	}
 
 	// Token data
-	mutable TArray<TWeakPtr<Token>> m_tokens; // Mutable so we can remove expired tokens while converting bool
+	mutable std::vector<std::weak_ptr<Token>> m_tokens; // Mutable so we can remove expired tokens while converting bool
 };
 
 NAMESPACE_SQUID_END

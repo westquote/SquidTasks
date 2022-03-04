@@ -39,7 +39,7 @@
 // Furthermore, in engines such as Unreal, a non-static world context object must be provided.
 
 // To enable global task time, user must *also* define a GetGlobalTime() implementation (otherwise there will be a linker error)
-#define SQUID_ENABLE_GLOBAL_TIME 0
+#define SQUID_ENABLE_GLOBAL_TIME 1
 #endif
 
 /// @} end of addtogroup Config

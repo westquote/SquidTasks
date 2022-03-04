@@ -76,6 +76,8 @@
 /// multiple tick functions (such as one for pre-physics updates and one for post-physics updates), then instantiating
 /// a second "post-physics" task manager may be desirable.
 
+#include <vector>
+
 #include "Task.h"
 
 NAMESPACE_SQUID_BEGIN
@@ -95,14 +97,14 @@ public:
 	{
 		// Run unmanaged task
 		TaskHandle<tRet> taskHandle = in_task;
-		WeakTask weakTask = MoveTemp(in_task);
-		RunWeakTask(MoveTemp(weakTask));
+		WeakTask weakTask = std::move(in_task);
+		RunWeakTask(std::move(weakTask));
 		return taskHandle;
 	}
 	template <typename tRet>
 	SQUID_NODISCARD TaskHandle<tRet> Run(const Task<tRet>& in_task) /// @private Illegal copy implementation
 	{
-		static_assert(static_false<tRet>::value, "Cannot run an unmanaged task by copy (try Run(MoveTemp(task)))");
+		static_assert(static_false<tRet>::value, "Cannot run an unmanaged task by copy (try Run(std::move(task)))");
 		return {};
 	}
 
@@ -114,13 +116,13 @@ public:
 	{
 		// Run managed task
 		WeakTaskHandle weakTaskHandle = in_task;
-		m_strongRefs.Add(Run(MoveTemp(in_task)));
+		m_strongRefs.push_back(Run(std::move(in_task)));
 		return weakTaskHandle;
 	}
 	template <typename tRet>
 	WeakTaskHandle RunManaged(const Task<tRet>& in_task) /// @private Illegal copy implementation
 	{
-		static_assert(static_false<tRet>::value, "Cannot run a managed task by copy (try RunManaged(MoveTemp(task)))");
+		static_assert(static_false<tRet>::value, "Cannot run a managed task by copy (try RunManaged(std::move(task)))");
 		return {};
 	}
 
@@ -131,16 +133,16 @@ public:
 	void RunWeakTask(WeakTask&& in_task)
 	{
 		// Run unmanaged task
-		m_tasks.Add(MoveTemp(in_task));
+		m_tasks.push_back(std::move(in_task));
 	}
 
 	/// Call Task::Kill() on all tasks (managed + unmanaged)
 	void KillAllTasks()
 	{
-		m_tasks.Reset(); // Destroying all the weak tasks implicitly destroys all internal tasks
+		m_tasks.clear(); // Destroying all the weak tasks implicitly destroys all internal tasks
 
 		// No need to call Kill() on each TaskHandle in m_strongRefs
-		m_strongRefs.Reset(); // Handles in the strong refs array only ever point to tasks in the now-cleared m_tasks array
+		m_strongRefs.clear(); // Handles in the strong refs array only ever point to tasks in the now-cleared m_tasks array
 	}
 
 	/// @brief Issue a stop request using @ref Task::RequestStop() on all active tasks (managed and unmanaged)
@@ -148,54 +150,56 @@ public:
 	Task<> StopAllTasks()
 	{
 		// Request stop on all tasks
-		TArray<WeakTaskHandle> weakHandles;
+		std::vector<WeakTaskHandle> weakHandles;
 		for(auto& task : m_tasks)
 		{
 			task.RequestStop();
-			weakHandles.Add(task);
+			weakHandles.push_back(task);
 		}
 
 		// Return a fence task that waits until all stopped tasks are complete
-		return [](TArray<WeakTaskHandle> in_weakHandles) -> Task<> {
+		return [](std::vector<WeakTaskHandle> in_weakHandles) -> Task<> {
 			TASK_NAME("StopAllTasks() Fence Task");
 			for(const auto& weakHandle : in_weakHandles)
 			{
 				co_await weakHandle; // Wait until task is complete
 			}
-		}(MoveTemp(weakHandles));
+		}(std::move(weakHandles));
 	}
 
 	/// Call @ref Task::Resume() on all active tasks exactly once (managed + unmanaged)
 	void Update()
 	{
 		// Resume all tasks
-		int32 writeIdx = 0;
-		for(int32 readIdx = 0; readIdx < m_tasks.Num(); ++readIdx)
+		size_t writeIdx = 0;
+		for(size_t readIdx = 0; readIdx < m_tasks.size(); ++readIdx)
 		{
 			if(m_tasks[readIdx].Resume() != eTaskStatus::Done)
 			{
 				if(writeIdx != readIdx)
 				{
-					m_tasks[writeIdx] = MoveTemp(m_tasks[readIdx]);
+					m_tasks[writeIdx] = std::move(m_tasks[readIdx]);
 				}
 				++writeIdx;
 			}
 		}
-		m_tasks.SetNum(writeIdx);
+		m_tasks.resize(writeIdx);
 
 		// Prune strong tasks that are done
-		m_strongRefs.RemoveAllSwap([](const auto& in_taskHandle) { return in_taskHandle.IsDone(); });
+		auto removeIt = m_strongRefs.erase(std::remove_if(m_strongRefs.begin(), m_strongRefs.end(), [](const auto& in_taskHandle) {
+			return in_taskHandle.IsDone();
+		}), m_strongRefs.end());
 	}
 
 	/// Get a debug string containing a list of all active tasks
-	FString GetDebugString(TOptional<TaskDebugStackFormatter> in_formatter = {}) const
+	std::string GetDebugString(std::optional<TaskDebugStackFormatter> in_formatter = {}) const
 	{
-		FString debugStr;
+		std::string debugStr;
 		for(const auto& task : m_tasks)
 		{
 			if(!task.IsDone())
 			{
-				if(debugStr.Len())
+				if(debugStr.size())
 				{
 					debugStr += '\n';
 				}
@@ -206,8 +210,8 @@ public:
 	}
 
 private:
-	TArray<WeakTask> m_tasks;
-	TArray<TaskHandle<>> m_strongRefs;
+	std::vector<WeakTask> m_tasks;
+	std::vector<TaskHandle<>> m_strongRefs;
 };
 
 NAMESPACE_SQUID_END

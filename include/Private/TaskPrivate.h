@@ -7,7 +7,7 @@ class TaskInternalBase;
 template <typename tRet> class TaskInternal;
 
 //--- tTaskReadyFn ---//
-using tTaskReadyFn = TFunction<bool()>;
+using tTaskReadyFn = std::function<bool()>;
 
 template <typename tRet, eTaskRef RefType, eTaskResumable Resumable>
 auto CancelTaskIf(Task<tRet, RefType, Resumable>&& in_task, tTaskCancelFn in_cancelFn);
@@ -38,16 +38,16 @@ private:
 struct TaskDebugStackFormatter
 {
 	// Format function (formats a debug output string) [virtual]
-	virtual FString Format(const FString& in_str) const
+	virtual std::string Format(const std::string& in_str)
 	{
-		FString result = Indent(0);
+		std::string result = Indent(0);
 		int32_t indent = 0;
-		int32_t start = 0;
-		int32_t found = 0;
-		while((found = in_str.FindChar('\n', start)) != INDEX_NONE)
+		size_t start = 0;
+		size_t found = 0;
+		while((found = in_str.find('\n', start)) != std::string::npos)
 		{
-			int32_t end = found + 1;
-			if((found < in_str.Len() - 1) && (in_str[found + 1] == '`')) // indent
+			size_t end = found + 1;
+			if((found < in_str.size() - 1) && (in_str[found + 1] == '`')) // indent
 			{
 				++indent;
 				++end;
@@ -57,22 +57,21 @@ struct TaskDebugStackFormatter
 				--indent;
 				--found;
 			}
-			result += in_str.Mid(start, found - start) + '\n' + Indent(indent);
+			result += in_str.substr(start, found - start) + '\n' + Indent(indent);
 			start = end;
 		}
-		result += in_str.Mid(start);
+		result += in_str.substr(start);
 		return result;
 	}
-	virtual FString Indent(int32_t in_indent) const
+	virtual std::string Indent(int32_t in_indent)
 	{
-		return FString::ChrN(in_indent * 2, ' ');
+		return std::string((long long)in_indent * 2, ' ');
 	}
 };
-static FString FormatDebugString(FString in_str)
+static std::string FormatDebugString(std::string in_str)
 {
-	in_str.ReplaceCharInline('\n', ' ');
-	in_str.LeftChopInline(32, false);
-	return in_str;
+	std::replace(in_str.begin(), in_str.end(), '\n', ' ');
+	return in_str.substr(0, 32);
 }
 
 //--- SetDebugName Awaiter ---//
@@ -84,7 +83,7 @@ struct SetDebugName
 		: m_name(in_name)
 	{
 	}
-	SetDebugName(const char* in_name, TFunction<FString()> in_dataFn)
+	SetDebugName(const char* in_name, std::function<std::string()> in_dataFn)
 		: m_name(in_name)
 		, m_dataFn(in_dataFn)
 	{
@@ -93,7 +92,7 @@ struct SetDebugName
 private:
 	template <typename tRet> friend class TaskPromiseBase;
 	const char* m_name = nullptr;
-	TFunction<FString()> m_dataFn;
+	std::function<std::string()> m_dataFn;
 };
 #endif //SQUID_ENABLE_TASK_DEBUG
 
@@ -146,13 +145,13 @@ struct TaskAwaiterBase
 		// This constructor exists to minimize downstream compile-error spam when co_awaiting a non-copyable Task by copy
 	}
 	TaskAwaiterBase(Task<tRet, RefType, Resumable>&& in_task)
-		: m_task(MoveTemp(in_task))
+		: m_task(std::move(in_task))
 	{
 		SQUID_RUNTIME_CHECK(m_task.IsValid(), "Tried to await an invalid task");
 	}
 	TaskAwaiterBase(TaskAwaiterBase&& in_taskAwaiter) noexcept
 	{
-		m_task = MoveTemp(in_taskAwaiter.m_task);
+		m_task = std::move(in_taskAwaiter.m_task);
 	}
 	bool await_ready() noexcept
 	{
@@ -173,7 +172,7 @@ struct TaskAwaiterBase
 		{
 			subTaskInternal->RequestStop(); // Propagate any stop request to new sub-tasks
 		}
-		taskInternal->SetSubTask(StaticCastSharedPtr<TaskInternalBase>(subTaskInternal));
+		taskInternal->SetSubTask(std::static_pointer_cast<TaskInternalBase>(subTaskInternal));
 
 		// Resume the task
 		if(m_task.Resume() == eTaskStatus::Done)
@@ -213,8 +212,8 @@ struct TaskAwaiter : public TaskAwaiterBase<tRet, RefType, Resumable, promise_ty
 	{
 		this->m_task.RethrowUnhandledException(); // Re-throw any exceptions
 		auto retVal = this->m_task.TakeReturnValue();
-		SQUID_RUNTIME_CHECK(retVal, "Awaited task return value is unset");
-		return MoveTemp(retVal.GetValue());
+		SQUID_RUNTIME_CHECK(retVal.has_value(), "Awaited task return value is unset");
+		return std::move(retVal.value());
 	}
 
 	template <typename U = tRet, typename std::enable_if_t<std::is_void<U>::value>* = nullptr>
@@ -228,8 +227,8 @@ struct TaskAwaiter : public TaskAwaiterBase<tRet, RefType, Resumable, promise_ty
 template <typename tRet, typename promise_type>
 struct FutureAwaiter
 {
-	FutureAwaiter(TFuture<tRet>&& in_future)
-		: m_future(MoveTemp(in_future))
+	FutureAwaiter(std::future<tRet>&& in_future)
+		: m_future(std::move(in_future))
 	{
 	}
 	~FutureAwaiter()
@@ -237,89 +236,95 @@ struct FutureAwaiter
 	}
 	FutureAwaiter(FutureAwaiter&& in_futureAwaiter) noexcept
 	{
-		m_future = MoveTemp(in_futureAwaiter.m_future);
+		m_future = std::move(in_futureAwaiter.m_future);
 	}
 	bool await_ready() noexcept
 	{
-		bool isReady = m_future.IsReady();
+		bool isReady = m_future.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
 		return isReady;
 	}
 	bool await_suspend(std::coroutine_handle<promise_type> in_coroHandle) noexcept
 	{
 		// Set the ready function
 		auto& promise = in_coroHandle.promise();
+		auto IsFutureReady = [this] {
+			return m_future.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
+		};
 
 		// Suspend if future is not ready
-		bool shouldSuspend = !m_future.IsReady();
-		if(shouldSuspend)
+		bool isReady = m_future.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
+		if(!isReady)
 		{
-			promise.SetReadyFunction([this] { return m_future.IsReady(); });
+			promise.SetReadyFunction(IsFutureReady);
 		}
-		return shouldSuspend;
+		return !isReady;
 	}
 
 	template <typename U = tRet, typename std::enable_if_t<!std::is_void<U>::value>* = nullptr>
 	auto await_resume()
 	{
-		return m_future.Get();
+		return m_future.get(); // Re-throws any exceptions
 	}
 
 	template <typename U = tRet, typename std::enable_if_t<std::is_void<U>::value>* = nullptr>
 	void await_resume()
 	{
-		m_future.Get();
+		m_future.get(); // Re-throws any exceptions
 	}
 
 private:
-	TFuture<tRet> m_future;
+	std::future<tRet> m_future;
 };
 
 //--- Shared Future Awaiter ---//
 template <typename tRet, typename promise_type>
 struct SharedFutureAwaiter
 {
-	SharedFutureAwaiter(const TSharedFuture<tRet>& in_sharedFuture)
+	SharedFutureAwaiter(const std::shared_future<tRet>& in_sharedFuture)
 		: m_sharedFuture(in_sharedFuture)
 	{
 	}
 	bool await_ready() noexcept
 	{
-		bool isReady = m_sharedFuture.IsReady();
+		bool isReady = m_sharedFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
 		return isReady;
 	}
 	bool await_suspend(std::coroutine_handle<promise_type> in_coroHandle) noexcept
 	{
 		// Set the ready function
 		auto& promise = in_coroHandle.promise();
+		auto IsFutureReady = [this] {
+			return m_sharedFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
+		};
 
 		// Suspend if future is not ready
-		bool shouldSuspend = !m_sharedFuture.IsReady();
-		if(shouldSuspend)
+		bool isReady = m_sharedFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
+		if(!isReady)
 		{
-			promise.SetReadyFunction([this] { return m_sharedFuture.IsReady(); });
+			promise.SetReadyFunction(IsFutureReady);
 		}
-		return shouldSuspend;
+		return !isReady;
 	}
 
 	template <typename U = tRet, typename std::enable_if_t<!std::is_void<U>::value>* = nullptr>
 	auto await_resume()
 	{
-		return m_sharedFuture.Get();
+		return m_sharedFuture.get(); // Re-throws any exceptions
 	}
 
 	template <typename U = tRet, typename std::enable_if_t<std::is_void<U>::value>* = nullptr>
 	void await_resume()
 	{
-		m_sharedFuture.Get(); // Trigger any pending errors
+		m_sharedFuture.get(); // Re-throws any exceptions
 	}
 
 private:
-	TSharedFuture<tRet> m_sharedFuture;
+	std::shared_future<tRet> m_sharedFuture;
 };
 
 //--- TaskPromiseBase ---//
 template <typename tRet>
-class alignas(16) TaskPromiseBase
+class TaskPromiseBase
 {
 public:
 	// Type aliases
@@ -346,30 +351,11 @@ public:
 	{
 		return std::coroutine_handle<promise_type>::from_promise(*static_cast<promise_type*>(this));
 	}
-	static TSharedPtr<tTaskInternal> get_return_object_on_allocation_failure()
+	static std::shared_ptr<tTaskInternal> get_return_object_on_allocation_failure()
 	{
 		SQUID_THROW(std::bad_alloc(), "Failed to allocate memory for Task");
 		return {};
 	}
-
-	//----------------------------------------------------------------------------
-	// HACK: Coroutines in UE5 under MSVC is currently causing a memory underrun
-	//       These allocators are a workaround for the issue (as is alignas(16))
-	void* operator new(size_t Size) noexcept
-	{
-		const size_t WorkaroundAlign = std::alignment_of<TaskPromiseBase>();
-		Size += WorkaroundAlign;
-		return (void*)((uint8_t*)FMemory::Malloc(Size, WorkaroundAlign) + WorkaroundAlign);
-	}
-	void operator delete(void* Ptr) noexcept
-	{
-		const size_t WorkaroundAlign = std::alignment_of<TaskPromiseBase>();
-		auto OffsetPtr = (uint8_t*)Ptr - WorkaroundAlign;
-		FMemory::Free(OffsetPtr);
-	}
-	//----------------------------------------------------------------------------
-
-#if SQUID_NEEDS_UNHANDLED_EXCEPTION
 	void unhandled_exception() noexcept
 	{
 #if SQUID_USE_EXCEPTIONS
@@ -377,7 +363,6 @@ public:
 		m_taskInternal->SetUnhandledException(std::current_exception());
 #endif //SQUID_USE_EXCEPTIONS
 	}
-#endif // SQUID_NEEDS_UNHANDLED_EXCEPTION
 
 	// Internal Task
 	void SetInternalTask(tTaskInternal* in_taskInternal)
@@ -461,13 +446,13 @@ public:
 	}
 
 	template <typename tFutureRet>
-	auto await_transform(TFuture<tFutureRet>&& in_future)
+	auto await_transform(std::future<tFutureRet>&& in_future)
 	{
-		return FutureAwaiter<tFutureRet, promise_type>(MoveTemp(in_future));
+		return FutureAwaiter<tFutureRet, promise_type>(std::move(in_future));
 	}
 
 	template <typename tFutureRet>
-	auto await_transform(const TSharedFuture<tFutureRet>& in_sharedFuture)
+	auto await_transform(const std::shared_future<tFutureRet>& in_sharedFuture)
 	{
 		return SharedFutureAwaiter<tFutureRet, promise_type>(in_sharedFuture);
 	}
@@ -477,22 +462,22 @@ public:
 		typename std::enable_if_t<Resumable == eTaskResumable::Yes>* = nullptr>
 		auto await_transform(Task<tTaskRet, RefType, Resumable>&& in_task) // Move version
 	{
-		return TaskAwaiter<tTaskRet, RefType, Resumable, promise_type>(MoveTemp(in_task));
+		return TaskAwaiter<tTaskRet, RefType, Resumable, promise_type>(std::move(in_task));
 	}
 
 	template <typename tTaskRet, eTaskRef RefType, eTaskResumable Resumable,
 		typename std::enable_if_t<Resumable == eTaskResumable::No>* = nullptr>
 		auto await_transform(Task<tTaskRet, RefType, Resumable> in_task) // Copy version (Non-Resumable)
 	{
-		return TaskAwaiter<tTaskRet, RefType, Resumable, promise_type>(MoveTemp(in_task));
+		return TaskAwaiter<tTaskRet, RefType, Resumable, promise_type>(std::move(in_task));
 	}
 
 	template <typename tTaskRet, eTaskRef RefType, eTaskResumable Resumable,
 		typename std::enable_if_t<Resumable == eTaskResumable::Yes>* = nullptr>
 		auto await_transform(const Task<tTaskRet, RefType, Resumable>& in_task) // Invalid copy version (Resumable)
 	{
-		static_assert(static_false<tTaskRet>::value, "Cannot await a non-copyable (resumable) Task by copy (try co_await MoveTemp(task), co_await WeakTaskHandle(task), or co_await task.WaitUntilDone()");
-		return TaskAwaiter<tTaskRet, RefType, Resumable, promise_type>(MoveTemp(in_task));
+		static_assert(static_false<tTaskRet>::value, "Cannot await a non-copyable (resumable) Task by copy (try co_await std::move(task), co_await WeakTaskHandle(task), or co_await task.WaitUntilDone()");
+		return TaskAwaiter<tTaskRet, RefType, Resumable, promise_type>(std::move(in_task));
 	}
 
 protected:
@@ -511,7 +496,7 @@ public:
 	}
 	void return_value(tRet&& in_retVal) // Move return value
 	{
-		this->m_taskInternal->SetReturnValue(MoveTemp(in_retVal));
+		this->m_taskInternal->SetReturnValue(std::move(in_retVal));
 	}
 };
 
@@ -550,12 +535,12 @@ public:
 		m_isStopRequested = true;
 		for(auto& stopTask : m_stopTasks)
 		{
-			if(auto locked = stopTask.Pin())
+			if(auto locked = stopTask.lock())
 			{
 				locked->RequestStop();
 			}
 		}
-		m_stopTasks.SetNum(0);
+		m_stopTasks.clear();
 	}
 	template <typename tRet, eTaskRef RefType, eTaskResumable Resumable>
 	void AddStopTask(Task<tRet, RefType, Resumable>& in_taskToStop) // Adds a task to the list of tasks to which we propagate stop requests
@@ -566,7 +551,7 @@ public:
 		}
 		else if(in_taskToStop.IsValid())
 		{
-			m_stopTasks.Add(in_taskToStop.GetInternalTask());
+			m_stopTasks.push_back(in_taskToStop.GetInternalTask());
 		}
 	}
 	template <typename tRet, eTaskRef RefType, eTaskResumable Resumable>
@@ -574,12 +559,12 @@ public:
 	{
 		if(in_taskToStop.IsValid())
 		{
-			for(int32_t i = 0; i < m_stopTasks.Num(); ++i)
+			for(size_t i = 0; i < m_stopTasks.size(); ++i)
 			{
-				if(m_stopTasks[i].Pin() == in_taskToStop.GetInternalTask())
+				if(m_stopTasks[i].lock() == in_taskToStop.GetInternalTask())
 				{
-					m_stopTasks[i] = m_stopTasks.Last();
-					m_stopTasks.Pop();
+					m_stopTasks[i] = m_stopTasks.back();
+					m_stopTasks.pop_back();
 					return;
 				}
 			}
@@ -637,20 +622,20 @@ public:
 	}
 
 	// Sub-task
-	void SetSubTask(TSharedPtr<TaskInternalBase> in_subTaskInternal)
+	void SetSubTask(std::shared_ptr<TaskInternalBase> in_subTaskInternal)
 	{
 		m_subTaskInternal = in_subTaskInternal;
 	}
 
 #if SQUID_ENABLE_TASK_DEBUG
 	// Debug task name + stack
-	FString GetDebugName() const
+	std::string GetDebugName() const
 	{
-		return (!IsDone() && m_debugDataFn) ? (FString(m_debugName) + " [" + m_debugDataFn() + "]") : m_debugName;
+		return (!IsDone() && m_debugDataFn) ? (std::string(m_debugName) + " [" + m_debugDataFn() + "]") : m_debugName;
 	}
-	FString GetDebugStack() const
+	std::string GetDebugStack() const
 	{
-		FString result = m_subTaskInternal ? (GetDebugName() + " -> " + m_subTaskInternal->GetDebugStack()) : GetDebugName();
+		std::string result = m_subTaskInternal ? (GetDebugName() + " -> " + m_subTaskInternal->GetDebugStack()) : GetDebugName();
 		return result;
 	}
 	void SetDebugName(const char* in_debugName)
@@ -660,7 +645,7 @@ public:
 			m_debugName = in_debugName;
 		}
 	}
-	void SetDebugDataFn(TFunction<FString()> in_debugDataFn)
+	void SetDebugDataFn(std::function<std::string()> in_debugDataFn)
 	{
 		m_debugDataFn = in_debugDataFn;
 	}
@@ -755,7 +740,7 @@ private:
 	};
 	eInternalState m_internalState = eInternalState::Idle;
 
-	// Task ready condition (when awaiting a TFunction<bool>)
+	// Task ready condition (when awaiting a std::function<bool>)
 	tTaskReadyFn m_taskReadyFn;
 
 #if SQUID_USE_EXCEPTIONS
@@ -765,7 +750,7 @@ private:
 #endif //SQUID_USE_EXCEPTIONS
 
 	// Sub-task
-	TSharedPtr<TaskInternalBase> m_subTaskInternal;
+	std::shared_ptr<TaskInternalBase> m_subTaskInternal;
 
 	// Reference-counting (determines underlying std::coroutine_handle lifetime, not lifetime of this internal task)
 	void AddLogicalRef()
@@ -787,12 +772,12 @@ private:
 
 	// Stop request
 	bool m_isStopRequested = false;
-	TArray<TWeakPtr<TaskInternalBase>> m_stopTasks;
+	std::vector<std::weak_ptr<TaskInternalBase>> m_stopTasks;
 
 #if SQUID_ENABLE_TASK_DEBUG
 	// Debug Data
 	const char* m_debugName = "[unnamed task]";
-	TFunction<FString()> m_debugDataFn;
+	std::function<std::string()> m_debugDataFn;
 #endif //SQUID_ENABLE_TASK_DEBUG
 };
 
@@ -819,13 +804,13 @@ public:
 	void SetReturnValue(const tRet& in_retVal)
 	{
 		tRet retVal = in_retVal;
-		SetReturnValue(MoveTemp(retVal));
+		SetReturnValue(std::move(retVal));
 	}
 	void SetReturnValue(tRet&& in_retVal)
 	{
 		if(m_retValState == eTaskRetValState::Unset)
 		{
-			m_retVal = MoveTemp(in_retVal);
+			m_retVal = std::move(in_retVal);
 			m_retValState = eTaskRetValState::Set;
 			return;
 		}
@@ -835,13 +820,13 @@ public:
 		SQUID_RUNTIME_CHECK(m_retValState != eTaskRetValState::Taken, "Attempted to set a task's return value after it was already taken");
 		SQUID_RUNTIME_CHECK(m_retValState != eTaskRetValState::Orphaned, "Attempted to set a task's return value after it was orphaned");
 	}
-	TOptional<tRet> TakeReturnValue()
+	std::optional<tRet> TakeReturnValue()
 	{
 		// If the value has been set, mark it as taken and move-return the value
 		if(m_retValState == eTaskRetValState::Set)
 		{
 			m_retValState = eTaskRetValState::Taken;
-			return MoveTemp(m_retVal);
+			return std::move(m_retVal);
 		}
 
 		// If the value was not set, return an unset optional (checking that it was neither taken nor orphaned)
@@ -866,7 +851,7 @@ private:
 	};
 
 	eTaskRetValState m_retValState = eTaskRetValState::Unset; // Initially unset
-	TOptional<tRet> m_retVal;
+	std::optional<tRet> m_retVal;
 };
 
 template <>

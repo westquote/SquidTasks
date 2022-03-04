@@ -86,12 +86,9 @@ struct static_false : std::false_type
 #undef CPP_LANGUAGE_VERSION
 
 // C++20 Compatibility (std::coroutine)
-#if HAS_CXX20 || (defined(_MSVC_LANG) && defined(__cpp_lib_coroutine)) // Standard coroutines
-#include <coroutine>
-#define SQUID_EXPERIMENTAL_COROUTINES 0
-#else // Experimental coroutines
-#if defined(__clang__) && defined(_STL_COMPILER_PREPROCESSOR)
-// HACK: Some distributions of clang don't have a <experimental/coroutine> header. We only need a few symbols, so just define them ourselves
+#if defined(__clang__) && defined(_STL_COMPILER_PREPROCESSOR) // Clang-friendly implementation of <coroutine> below
+ // HACK: The above condition checks if we're compiling w/ Clang under Visual Studio
+#define USING_EXPERIMENTAL_COROUTINES
 namespace std {
 	namespace experimental {
 		inline namespace coroutines_v1 {
@@ -174,47 +171,23 @@ namespace std {
 		}
 	}
 }
-#else
+#elif HAS_CXX20 || defined(SQUID_HAS_AWAIT_STRICT) // Built-in C++20 coroutines implementation
+#include <coroutine>
+#else // Built-in experimental coroutines implementation
+#define USING_EXPERIMENTAL_COROUTINES
 #include <experimental/coroutine>
 #endif
-namespace std // Alias experimental coroutine symbols into std namespace
+
+// Pull experimental coroutines implementation into the main ::std:: namspace
+#if defined(USING_EXPERIMENTAL_COROUTINES)
+namespace std
 {
 	template <class _Promise = void>
 	using coroutine_handle = experimental::coroutine_handle<_Promise>;
 	using suspend_never = experimental::suspend_never;
 	using suspend_always = experimental::suspend_always;
 };
-#define SQUID_EXPERIMENTAL_COROUTINES 1
-#endif
-
-// Determine whether our tasks need the member function "unhandled_exception()" defined or not
-#if defined(_MSC_VER)
-	// MSVC's rules for exceptions differ between standard + experimental coroutines
-	#if SQUID_EXPERIMENTAL_COROUTINES
-		// If exceptions are enabled, we must define unhandled_exception()
-		#if defined(__cpp_exceptions) && __cpp_exceptions == 199711
-			#define SQUID_NEEDS_UNHANDLED_EXCEPTION 1
-		#else
-			#define SQUID_NEEDS_UNHANDLED_EXCEPTION 0
-		#endif
-	#else
-		// If we're using VS16.11 or newer -- or older than 16.10, we have one set of rules for standard coroutines
-		#if _MSC_FULL_VER >= 192930133L || _MSC_VER < 1429L
-			#define SQUID_NEEDS_UNHANDLED_EXCEPTION 1
-		#else
-			#if defined(__cpp_exceptions) && __cpp_exceptions == 199711
-				#define SQUID_NEEDS_UNHANDLED_EXCEPTION 1
-			#else
-				// 16.10 has a bug with their standard coroutine implementation that creates a set of contradicting requirements
-				// https://developercommunity.visualstudio.com/t/coroutine-uses-promise_type::unhandled_e/1374530
-				#error Visual Studio 16.10 has a compiler bug that prevents all coroutines from compiling when exceptions are disabled and using standard C++20 coroutines or /await:strict. Please either upgrade your version of Visual Studio, or use the experimental /await flag, or enable exceptions.
-			#endif
-		#endif
-	#endif
-#else
-// Clang always requires unhandled_exception() to be defined
-#define SQUID_NEEDS_UNHANDLED_EXCEPTION 1
-#endif
+#endif //USING_EXPERIMENTAL_COROUTINES
 
 // C++17 Compatibility ([[nodiscard]])
 #if !defined(SQUID_NODISCARD) && defined(__has_cpp_attribute)
@@ -226,11 +199,17 @@ namespace std // Alias experimental coroutine symbols into std namespace
 #define SQUID_NODISCARD
 #endif
 
+// C++17 Compatibility (std::optional)
+#if HAS_CXX17 // Built-in C++17 optional implementation
+#include <optional>
+#else // Public-domain optional implementation (c/o TartanLlama)
+#include "tl/optional.hpp"
+namespace std
+{
+	template <class T>
+	using optional = tl::optional<T>;
+};
+#endif
+
 #undef HAS_CXX17
 #undef HAS_CXX20
-
-// Include UE core headers
-#include "CoreMinimal.h"
-#include "Engine/World.h"
-#include "Engine/Engine.h"
-#include "Async/Future.h"

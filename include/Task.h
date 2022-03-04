@@ -10,6 +10,11 @@
  /// @defgroup Awaiters Awaiters
  /// @brief Versatile task awaiters that offer utility to most projects
 
+#include <functional>
+#include <future>
+#include <memory>
+#include <string>
+
 //--- User configuration header ---//
 #include "TasksConfig.h"
 
@@ -18,7 +23,7 @@
 /// @ingroup Tasks
 /// @brief Macro that instruments a task with a debug name string. Usually at the top of every task coroutine as @c TASK_NAME(__FUNCTION__)
 #define TASK_NAME(...) co_await SetDebugName(__VA_ARGS__);
-#define DEBUG_STR , FString in_debugStr
+#define DEBUG_STR , std::string in_debugStr
 #define PASS_DEBUG_STR , in_debugStr
 #define MANUAL_DEBUG_STR(debugStr) , debugStr
 #define WaitUntilImpl(...) _WaitUntil(__VA_ARGS__, #__VA_ARGS__)
@@ -65,7 +70,7 @@ enum class eTaskStatus /// Status of a task (whether it is currently suspended o
 };
 
 //--- tTaskCancelFn ---//
-using tTaskCancelFn = TFunction<bool()>; ///< CancelIf/StopIf condition function type
+using tTaskCancelFn = std::function<bool()>; ///< CancelIf/StopIf condition function type
 
 // Forward declarations
 template <typename tRet, eTaskRef RefType, eTaskResumable Resumable>
@@ -214,13 +219,13 @@ public:
 	Task(nullptr_t) /// Null-pointer constructor (constructs an invalid handle)
 	{
 	}
-	Task(TSharedPtr<tTaskInternal> in_taskInternal) /// @private
+	Task(std::shared_ptr<tTaskInternal> in_taskInternal) /// @private
 		: m_taskInternal(in_taskInternal)
 	{
 		AddRef();
 	}
 	Task(std::coroutine_handle<promise_type> in_coroHandle) /// @private
-		: m_taskInternal(MakeShared<tTaskInternal>(in_coroHandle))
+		: m_taskInternal(std::make_shared<tTaskInternal>(in_coroHandle))
 	{
 		AddRef();
 	}
@@ -231,7 +236,7 @@ public:
 		AddRef();
 	}
 	Task(Task&& in_otherTask) noexcept /// Move constructor
-		: m_taskInternal(MoveTemp(in_otherTask.m_taskInternal))
+		: m_taskInternal(std::move(in_otherTask.m_taskInternal))
 	{
 		// NOTE: No need to alter logical reference here (this is a move)
 	}
@@ -255,7 +260,7 @@ public:
 		KillIfResumable();
 		RemoveRef(); // Remove logical reference from old internal task
 		// NOTE: No need to add logical reference here (this is a move)
-		m_taskInternal = MoveTemp(in_otherTask.m_taskInternal);
+		m_taskInternal = std::move(in_otherTask.m_taskInternal);
 		return *this;
 	}
 	~Task() /// Destructor
@@ -267,7 +272,7 @@ public:
 	}
 	bool IsValid() const /// Returns whether the underlying coroutine is valid
 	{
-		return m_taskInternal.IsValid();
+		return m_taskInternal.get();
 	}
 	operator bool() const /// Conversion-to-bool that yields whether an underlying coroutine is set for the task
 	{
@@ -296,7 +301,7 @@ public:
 			m_taskInternal->Kill();
 		}
 	}
-	NONVOID_ONLY TOptional<tRet> TakeReturnValue() /// Attempts to take the task's return value (throws error if return value is either orphaned or was already taken)
+	NONVOID_ONLY std::optional<tRet> TakeReturnValue() /// Attempts to take the task's return value (throws error if return value is either orphaned or was already taken)
 	{
 		SQUID_RUNTIME_CHECK(IsValid(), "Tried to retrieve return value from an invalid handle");
 		return GetInternalTask()->TakeReturnValue();
@@ -308,26 +313,26 @@ public:
 	}
 
 #if SQUID_ENABLE_TASK_DEBUG
-	FString GetDebugName(TOptional<TaskDebugStackFormatter> in_formatter = {}) const /// Gets this task's debug name (use TASK_NAME to set the debug name)
+	std::string GetDebugName(std::optional<TaskDebugStackFormatter> in_formatter = {}) const /// Gets this task's debug name (use TASK_NAME to set the debug name)
 	{
 		const char* defaultRetVal = Resumable == eTaskResumable::Yes ? "[empty task]" : "[empty task handle]";
 		auto debugName = IsValid() ? m_taskInternal->GetDebugName() : defaultRetVal;
-		return in_formatter ? in_formatter.GetValue().Format(debugName) : debugName;
+		return in_formatter ? in_formatter.value().Format(debugName) : debugName;
 	}
-	FString GetDebugStack(TOptional<TaskDebugStackFormatter> in_formatter = {}) const /// Gets this task's debug stack (use TASK_NAME to set a task's debug name)
+	std::string GetDebugStack(std::optional<TaskDebugStackFormatter> in_formatter = {}) const /// Gets this task's debug stack (use TASK_NAME to set a task's debug name)
 	{
 		if(IsValid())
 		{
-			return in_formatter ? in_formatter.GetValue().Format(m_taskInternal->GetDebugStack()) : m_taskInternal->GetDebugStack();
+			return in_formatter ? in_formatter.value().Format(m_taskInternal->GetDebugStack()) : m_taskInternal->GetDebugStack();
 		}
 		return GetDebugName(in_formatter);
 	}
 #else
-	FString GetDebugName(TOptional<TaskDebugStackFormatter> in_formatter = {}) const /// @private
+	std::string GetDebugName(std::optional<TaskDebugStackFormatter> in_formatter = {}) const /// @private
 	{
 		return ""; // Returns an empty string when task debug is disabled
 	}
-	FString GetDebugStack(TOptional<TaskDebugStackFormatter> in_formatter = {}) const /// @private
+	std::string GetDebugStack(std::optional<TaskDebugStackFormatter> in_formatter = {}) const /// @private
 	{
 		return ""; // Returns an empty string when task debug is disabled
 	}
@@ -361,7 +366,7 @@ public:
 		constexpr bool isLegalTypeConversion = IsStrong() && IsResumable();
 		static_assert(isLegalTypeConversion, "Cannot promote WeakTask/TaskHandle/WeakTaskHandle to Task");
 		static_assert(!isLegalTypeConversion || isLegalReturnTypeConversion, "Mismatched return type (invalid return type conversion)");
-		static_assert(!isLegalTypeConversion || !isLegalReturnTypeConversion, "Cannot copy Task -> Task because it is non-copyable (try MoveTemp(task))");
+		static_assert(!isLegalTypeConversion || !isLegalReturnTypeConversion, "Cannot copy Task -> Task because it is non-copyable (try std::move(task))");
 		return {};
 	}
 	template <typename tOtherRet>
@@ -378,7 +383,7 @@ public:
 	operator WeakTask() const & /// @private Copy-convert to WeakTask (always illegal)
 	{
 		static_assert(IsResumable(), "Cannot convert TaskHandle -> WeakTask (invalid resumability conversion");
-		static_assert(!IsResumable(), "Cannot copy Task -> WeakTask because it is non-copyable (try MoveTemp(task))");
+		static_assert(!IsResumable(), "Cannot copy Task -> WeakTask because it is non-copyable (try std::move(task))");
 		return {};
 	}
 	operator WeakTask() && /// @private Move-convert to WeakTask (sometimes legal)
@@ -407,77 +412,77 @@ public:
 
 	// Cancel-If Methods
 	/// Returns wrapper task that kills this task when the given function returns true. Returns whether wrapped task was canceled.
-	/// Task return value will be bool if wrapped task had void return type, otherwise TOptional<tRet>.
+	/// Task return value will be bool if wrapped task had void return type, otherwise std::optional<tRet>.
 	auto CancelIf(tTaskCancelFn in_cancelFn) &&
 	{
-		return CancelTaskIf(MoveTemp(*this), in_cancelFn);
+		return CancelTaskIf(std::move(*this), in_cancelFn);
 	}
 	/// Returns wrapper task that kills this task when a stop request is issued on it. Returns whether wrapped task was canceled.
-	/// Task return value will be bool if wrapped task had void return type, otherwise TOptional<tRet>.
+	/// Task return value will be bool if wrapped task had void return type, otherwise std::optional<tRet>.
 	auto CancelIfStopRequested() && /// 
 	{
-		return MoveTemp(*this).CancelIf([this] { return IsStopRequested(); });
+		return std::move(*this).CancelIf([this] { return IsStopRequested(); });
 	}
 	auto CancelIf(tTaskCancelFn in_cancelFn) & /// @private Illegal lvalue implementation
 	{
-		static_assert(static_false<tRet>::value, "Cannot call CancelIf() on an lvalue (try MoveTemp(task).CancelIf())");
-		return CancelTaskIf(MoveTemp(*this), in_cancelFn);
+		static_assert(static_false<tRet>::value, "Cannot call CancelIf() on an lvalue (try std::move(task).CancelIf())");
+		return CancelTaskIf(std::move(*this), in_cancelFn);
 	}
 	auto CancelIfStopRequested() & /// @private Illegal lvalue implementation
 	{
-		static_assert(static_false<tRet>::value, "Cannot call CancelIfStopRequested() on an lvalue (try MoveTemp(task).CancelIfStopRequested())");
-		return MoveTemp(*this).CancelIf([this] { return IsStopRequested(); });
+		static_assert(static_false<tRet>::value, "Cannot call CancelIfStopRequested() on an lvalue (try std::move(task).CancelIfStopRequested())");
+		return std::move(*this).CancelIf([this] { return IsStopRequested(); });
 	}
 
 	// Stop-If Methods
 	/// @brief Returns wrapper task that requests a stop on this task when the given function returns true, then waits for the task to terminate (without timeout).
-	/// @details Task returns whether wrapped task was canceled. Task return value will be bool if wrapped task had void return type, otherwise TOptional<tRet>.
+	/// @details Task returns whether wrapped task was canceled. Task return value will be bool if wrapped task had void return type, otherwise std::optional<tRet>.
 	auto StopIf(tTaskCancelFn in_cancelFn) && /// Returns wrapper task that requests a stop on this task when the given function returns true
 	{
-		return StopTaskIf(MoveTemp(*this), in_cancelFn);
+		return StopTaskIf(std::move(*this), in_cancelFn);
 	}
 	auto StopIf(tTaskCancelFn in_cancelFn) & /// @private Illegal lvalue implementation
 	{
-		static_assert(static_false<tRet>::value, "Cannot call StopIf() on an lvalue (try MoveTemp(task).StopIf())");
-		return StopTaskIf(MoveTemp(*this), in_cancelFn);
+		static_assert(static_false<tRet>::value, "Cannot call StopIf() on an lvalue (try std::move(task).StopIf())");
+		return StopTaskIf(std::move(*this), in_cancelFn);
 	}
 #if SQUID_ENABLE_GLOBAL_TIME
 	/// @brief Returns wrapper task that requests a stop on this task when the given function returns true, then waits for the task to terminate (with timeout in the global time-stream).
-	/// @details Task returns whether wrapped task was canceled. Task return value will be bool if wrapped task had void return type, otherwise TOptional<tRet>.
+	/// @details Task returns whether wrapped task was canceled. Task return value will be bool if wrapped task had void return type, otherwise std::optional<tRet>.
 	auto StopIf(tTaskCancelFn in_cancelFn, tTaskTime in_timeout) &&
 	{
 		// Cannot be called unless SQUID_ENABLE_GLOBAL_TIME has been set in TasksConfig.h.
-		return StopTaskIf(MoveTemp(*this), in_cancelFn, in_timeout);
+		return StopTaskIf(std::move(*this), in_cancelFn, in_timeout);
 	}
 	auto StopIf(tTaskCancelFn in_cancelFn, tTaskTime in_timeout) & /// @private Illegal lvalue implementation
 	{
-		static_assert(static_false<tRet>::value, "Cannot call StopIf() on an lvalue (try MoveTemp(task).StopIf())");
-		return StopTaskIf(MoveTemp(*this), in_cancelFn, in_timeout);
+		static_assert(static_false<tRet>::value, "Cannot call StopIf() on an lvalue (try std::move(task).StopIf())");
+		return StopTaskIf(std::move(*this), in_cancelFn, in_timeout);
 	}
 #else
 	auto StopIf(tTaskCancelFn in_cancelFn, tTaskTime in_timeout) && /// @private Illegal global-time implementation
 	{
 		static_assert(static_false<tRet>::value, "Global task time not enabled (see SQUID_ENABLE_GLOBAL_TIME in TasksConfig.h)");
-		return StopTaskIf(MoveTemp(*this), in_cancelFn);
+		return StopTaskIf(std::move(*this), in_cancelFn);
 	}
 	auto StopIf(tTaskCancelFn in_cancelFn, tTaskTime in_timeout) & /// @private Illegal lvalue implementation
 	{
 		static_assert(static_false<tRet>::value, "Global task time not enabled (see TasksConfig.h)");
-		return StopTaskIf(MoveTemp(*this), in_cancelFn);
+		return StopTaskIf(std::move(*this), in_cancelFn);
 	}
 #endif //SQUID_ENABLE_GLOBAL_TIME
 	/// @brief Returns wrapper task that requests a stop on this task when the given function returns true, then waits for the task to terminate (with timeout in a given time-stream).
-	/// @details Task returns whether wrapped task was canceled. Task return value will be bool if wrapped task had void return type, otherwise TOptional<tRet>.
+	/// @details Task returns whether wrapped task was canceled. Task return value will be bool if wrapped task had void return type, otherwise std::optional<tRet>.
 	template <typename tTimeFn>
 	auto StopIf(tTaskCancelFn in_cancelFn, tTaskTime in_timeout, tTimeFn in_timeFn) &&
 	{
-		return StopTaskIf(MoveTemp(*this), in_cancelFn, in_timeout, in_timeFn);
+		return StopTaskIf(std::move(*this), in_cancelFn, in_timeout, in_timeFn);
 	}
 	template <typename tTimeFn>
 	auto StopIf(tTaskCancelFn in_cancelFn, tTaskTime in_timeout, tTimeFn in_timeFn) & /// @private Illegal lvalue implementation
 	{
-		static_assert(static_false<tRet>::value, "Cannot call StopIf() on an lvalue (try MoveTemp(task).StopIf())");
-		return StopTaskIf(MoveTemp(*this), in_cancelFn, in_timeout, in_timeFn);
+		static_assert(static_false<tRet>::value, "Cannot call StopIf() on an lvalue (try std::move(task).StopIf())");
+		return StopTaskIf(std::move(*this), in_cancelFn, in_timeout, in_timeFn);
 	}
 
 private:
@@ -488,13 +493,13 @@ private:
 	/// @endcond
 
 	// Task Internal Storage
-	TSharedPtr<TaskInternalBase> m_taskInternal;
+	std::shared_ptr<TaskInternalBase> m_taskInternal;
 
 	// Casts the internal task storage pointer to a concrete (non-TaskInternalBase) pointer
-	TSharedPtr<tTaskInternal> GetInternalTask() const
+	std::shared_ptr<tTaskInternal> GetInternalTask() const
 	{
 		// We can safely downcast from TaskInternalBase to TaskInternal<void>
-		return StaticCastSharedPtr<tTaskInternal>(m_taskInternal);
+		return std::static_pointer_cast<tTaskInternal>(m_taskInternal);
 	}
 
 	// Copy/Move Implementations
@@ -636,52 +641,6 @@ tTaskTime GetTimeSince(tTaskTime in_t)
 }
 #endif //SQUID_ENABLE_GLOBAL_TIME
 
-inline TFunction<tTaskTime()> GameTime(UWorld* World) /// Game time-stream (Unreal-only; UWorld version)
-{
-	return [World] { return World ? World->GetTimeSeconds() : 0.0f; };
-}
-inline TFunction<tTaskTime()> AudioTime(UWorld* World) /// Audio time-stream (Unreal-only; UWorld version)
-{
-	return [World] { return World ? World->GetAudioTimeSeconds() : 0.0f; };
-}
-inline TFunction<tTaskTime()> RealTime(UWorld* World) /// Real time-stream (Unreal-only; UWorld version)
-{
-	return [World] { return World ? World->GetRealTimeSeconds() : 0.0f; };
-}
-inline TFunction<tTaskTime()> UnpausedTime(UWorld* World) /// Unpaused time-stream (Unreal-only; UWorld version)
-{
-	return [World] { return World ? World->GetUnpausedTimeSeconds() : 0.0f; };
-}
-inline TFunction<tTaskTime()> GameTime(UObject* Ctx) /// Game time-stream (Unreal-only; UObject version)
-{
-	UWorld* World = GEngine->GetWorldFromContextObject(Ctx, EGetWorldErrorMode::LogAndReturnNull);
-	return GameTime(World);
-}
-inline TFunction<tTaskTime()> AudioTime(UObject* Ctx) /// Audio time-stream (Unreal-only; UObject version)
-{
-	UWorld* World = GEngine->GetWorldFromContextObject(Ctx, EGetWorldErrorMode::LogAndReturnNull);
-	return AudioTime(World);
-}
-inline TFunction<tTaskTime()> RealTime(UObject* Ctx) /// Real time-stream (Unreal-only; UObject version)
-{
-	UWorld* World = GEngine->GetWorldFromContextObject(Ctx, EGetWorldErrorMode::LogAndReturnNull);
-	return RealTime(World);
-}
-inline TFunction<tTaskTime()> UnpausedTime(UObject* Ctx) /// Unpaused time-stream (Unreal-only; UObject version)
-{
-	UWorld* World = GEngine->GetWorldFromContextObject(Ctx, EGetWorldErrorMode::LogAndReturnNull);
-	return UnpausedTime(World);
-}
-inline tTaskTime DeltaSeconds(UWorld* World) /// Game delta-seconds (Unreal-only; UWorld version)
-{
-	return World ? World->GetDeltaSeconds() : 0.0f;
-}
-inline tTaskTime DeltaSeconds(UObject* Ctx) /// Game delta-seconds (Unreal-only; UObject version)
-{
-	UWorld* World = GEngine->GetWorldFromContextObject(Ctx, EGetWorldErrorMode::LogAndReturnNull);
-	return DeltaSeconds(World);
-}
-
 /// @} end of addtogroup Time
 
 /// @addtogroup Awaiters
@@ -692,20 +651,20 @@ inline tTaskTime DeltaSeconds(UObject* Ctx) /// Game delta-seconds (Unreal-only;
 struct TaskWrapper
 {
 public:
-	TaskWrapper(Task<> in_task) : task(MoveTemp(in_task)) {}
+	TaskWrapper(Task<> in_task) : task(std::move(in_task)) {}
 	~TaskWrapper() {}
 	Task<> task;
 
 	template <typename tRet>
-	static TSharedPtr<TaskWrapper> Wrap(Task<tRet> in_task)
+	static std::shared_ptr<TaskWrapper> Wrap(Task<tRet> in_task)
 	{
-		return MakeShared<TaskWrapper>(MoveTemp(in_task));
+		return std::make_shared<TaskWrapper>(std::move(in_task));
 	}
 	template <typename tReadyFn>
-	static TSharedPtr<TaskWrapper> Wrap(tReadyFn in_readyFn)
+	static std::shared_ptr<TaskWrapper> Wrap(tReadyFn in_readyFn)
 	{
 		auto task = [](tReadyFn in_readyFn) -> Task<> { co_await in_readyFn; }(in_readyFn);
-		return MakeShared<TaskWrapper>(MoveTemp(task));
+		return std::make_shared<TaskWrapper>(std::move(task));
 	}
 };
 
@@ -714,7 +673,7 @@ struct TaskSingleEntry
 {
 	template <typename tRet>
 	TaskSingleEntry(Task<tRet> in_task)
-		: taskWrapper(TaskWrapper::Wrap(MoveTemp(in_task)))
+		: taskWrapper(TaskWrapper::Wrap(std::move(in_task)))
 	{
 	}
 	template <typename tReadyFn>
@@ -726,7 +685,7 @@ struct TaskSingleEntry
 	{
 		return taskWrapper->task.Resume();
 	}
-	TSharedPtr<TaskWrapper> taskWrapper;
+	std::shared_ptr<TaskWrapper> taskWrapper;
 };
 
 /// @private
@@ -736,7 +695,7 @@ struct TaskSelectEntry
 	template <typename tRet>
 	TaskSelectEntry(tValue in_value, Task<tRet> in_task)
 		: value(in_value)
-		, taskWrapper(TaskWrapper::Wrap(MoveTemp(in_task)))
+		, taskWrapper(TaskWrapper::Wrap(std::move(in_task)))
 	{
 	}
 	template <typename tReadyFn>
@@ -754,16 +713,16 @@ struct TaskSelectEntry
 		return value;
 	}
 	tValue value;
-	TSharedPtr<TaskWrapper> taskWrapper;
+	std::shared_ptr<TaskWrapper> taskWrapper;
 };
 
 /// @cond
 #define TASK_NAME_ENTRIES(name, entries) \
 	TASK_NAME(name, [entries]() { \
-		FString debugStr; \
+		std::string debugStr; \
 		for(auto entry : entries) \
 		{ \
-			debugStr += debugStr.Len() ? "\n" : "\n`"; \
+			debugStr += debugStr.size() ? "\n" : "\n`"; \
 			debugStr += entry.taskWrapper->task.GetDebugStack(); \
 		} \
 		debugStr += "`\n"; \
@@ -772,10 +731,10 @@ struct TaskSelectEntry
 
 #define TASK_NAME_ENTRIES_ALL(name, entries) \
 	TASK_NAME(name, [entries]() { \
-		FString debugStr; \
+		std::string debugStr; \
 		for(auto entry : entries) \
 		{ \
-			debugStr += debugStr.Len() ? "\n" : "\n`"; \
+			debugStr += debugStr.size() ? "\n" : "\n`"; \
 			debugStr += entry.taskWrapper->task.GetDebugStack() + (entry.taskWrapper->task.IsDone() ? " [DONE]" : " [RUNNING]"); \
 		} \
 		debugStr += "`\n"; \
@@ -784,7 +743,7 @@ struct TaskSelectEntry
 /// @endcond
 
 /// Awaiter task that manages a set of other awaiters and waits until at least one of them is done
-inline Task<> WaitForAny(TArray<TaskSingleEntry> in_entries)
+inline Task<> WaitForAny(std::vector<TaskSingleEntry> in_entries)
 {
 	TASK_NAME_ENTRIES(__FUNCTION__, in_entries);
 
@@ -808,7 +767,7 @@ inline Task<> WaitForAny(TArray<TaskSingleEntry> in_entries)
 
 /// Awaiter task that manages a set of other awaiters and waits until all of them are done
 COROUTINE_OPTIMIZE_OFF // NOTE: There is a compiler optimization bug in versions of Clang used on some platforms that cause it to crash when compiling this function
-inline Task<> WaitForAll(TArray<TaskSingleEntry> in_entries)
+inline Task<> WaitForAll(std::vector<TaskSingleEntry> in_entries)
 {
 	TASK_NAME_ENTRIES_ALL(__FUNCTION__, in_entries);
 
@@ -838,7 +797,7 @@ COROUTINE_OPTIMIZE_ON
 
 /// Awaiter task that behaves like WaitForAny(), but returns a value associated with whichever awaiter finishes first
 template<class tValue>
-Task<tValue> Select(TArray<TaskSelectEntry<tValue>> in_entries)
+Task<tValue> Select(std::vector<TaskSelectEntry<tValue>> in_entries)
 {
 	TASK_NAME_ENTRIES(__FUNCTION__, in_entries);
 
@@ -849,7 +808,7 @@ Task<tValue> Select(TArray<TaskSelectEntry<tValue>> in_entries)
 
 	while(true)
 	{
-		for(size_t i = 0; i < in_entries.Num(); ++i)
+		for(size_t i = 0; i < in_entries.size(); ++i)
 		{
 			if(in_entries[i].Resume() == eTaskStatus::Done)
 			{
@@ -893,7 +852,7 @@ template <typename tTimeFn>
 Task<tTaskTime> WaitSeconds(tTaskTime in_seconds, tTimeFn in_timeFn)
 {
 	auto startTime = in_timeFn();
-	TASK_NAME(__FUNCTION__, [in_timeFn, startTime, in_seconds] { return FString::SanitizeFloat(GetTimeSince(startTime, in_timeFn)) + "/" + FString::SanitizeFloat(in_seconds); });
+	TASK_NAME(__FUNCTION__, [in_timeFn, startTime, in_seconds] { return std::to_string(GetTimeSince(startTime, in_timeFn)) + "/" + std::to_string(in_seconds); });
 
 	auto IsTimerUp = [in_timeFn, startTime, in_seconds] {
 		return GetTimeSince(startTime, in_timeFn) >= in_seconds;
@@ -909,7 +868,7 @@ auto Timeout(Task<tRet>&& in_task, tTaskTime in_seconds, tTimeFn in_timeFn)
 	auto IsTimerUp = [in_timeFn, startTime = in_timeFn(), in_seconds]{
 		return GetTimeSince(startTime, in_timeFn) >= in_seconds;
 	};
-	return CancelTaskIf(MoveTemp(in_task), IsTimerUp);
+	return CancelTaskIf(std::move(in_task), IsTimerUp);
 }
 
 /// Awaiter function that calls a given function after N seconds in a given time-stream
@@ -934,7 +893,7 @@ inline Task<tTaskTime> WaitSeconds(tTaskTime in_seconds)
 template <typename tRet>
 auto Timeout(Task<tRet>&& in_task, tTaskTime in_seconds)
 {
-	return Timeout(MoveTemp(in_task), in_seconds, GlobalTime());
+	return Timeout(std::move(in_task), in_seconds, GlobalTime());
 }
 
 /// Awaiter function that calls a given function after N seconds in the global time-stream (requires SQUID_ENABLE_GLOBAL_TIME)
@@ -964,43 +923,9 @@ static Task<> DelayCall(tTaskTime in_delaySeconds, tFn in_fn) /// @private Illeg
 }
 #endif //SQUID_ENABLE_GLOBAL_TIME
 
-//--- Unreal-specific time awaiters ---//
-inline Task<tTaskTime> WaitGameSeconds(tTaskTime in_dt, UWorld* in_world) /// Awaiter function that waits N seconds in the game time-stream (Unreal-only; UWorld version)
-{
-	co_return co_await WaitSeconds(in_dt, GameTime(in_world));
-}
-inline Task<tTaskTime> WaitAudioSeconds(tTaskTime in_dt, UWorld* in_world) /// Awaiter function that waits N seconds in the audio time-stream (Unreal-only; UWorld version)
-{
-	co_return co_await WaitSeconds(in_dt, AudioTime(in_world));
-}
-inline Task<tTaskTime> WaitRealSeconds(tTaskTime in_dt, UWorld* in_world) /// Awaiter function that waits N seconds in the real time-stream (Unreal-only; UWorld version)
-{
-	co_return co_await WaitSeconds(in_dt, RealTime(in_world));
-}
-inline Task<tTaskTime> WaitUnpausedSeconds(tTaskTime in_dt, UWorld* in_world) /// Awaiter function that waits N seconds in the unpaused time-stream (Unreal-only; UWorld version)
-{
-	co_return co_await WaitSeconds(in_dt, UnpausedTime(in_world));
-}
-inline Task<tTaskTime> WaitGameSeconds(tTaskTime in_dt, UObject* in_ctx) /// Awaiter function that waits N seconds in the game time-stream (Unreal-only; UObject version)
-{
-	co_return co_await WaitSeconds(in_dt, GameTime(in_ctx));
-}
-inline Task<tTaskTime> WaitAudioSeconds(tTaskTime in_dt, UObject* in_ctx) /// Awaiter function that waits N seconds in the audio time-stream (Unreal-only; UObject version)
-{
-	co_return co_await WaitSeconds(in_dt, AudioTime(in_ctx));
-}
-inline Task<tTaskTime> WaitRealSeconds(tTaskTime in_dt, UObject* in_ctx) /// Awaiter function that waits N seconds in the real time-stream (Unreal-only; UObject version)
-{
-	co_return co_await WaitSeconds(in_dt, RealTime(in_ctx));
-}
-inline Task<tTaskTime> WaitUnpausedSeconds(tTaskTime in_dt, UObject* in_ctx) /// Awaiter function that waits N seconds in the unpaused time-stream (Unreal-only; UObject version)
-{
-	co_return co_await WaitSeconds(in_dt, UnpausedTime(in_ctx));
-}
-
 //--- Cancel-If Implementation ---//
 template <typename tRet>
-Task<TOptional<tRet>> CancelIfImpl(Task<tRet> in_task, tTaskCancelFn in_cancelFn) /// @private
+Task<std::optional<tRet>> CancelIfImpl(Task<tRet> in_task, tTaskCancelFn in_cancelFn) /// @private
 {
 	TASK_NAME("CancelIf", [taskHandle = TaskHandle<tRet>(in_task)]{ return taskHandle.GetDebugStack(); });
 
@@ -1046,23 +971,16 @@ template <typename tRet, eTaskRef RefType, eTaskResumable Resumable>
 auto CancelTaskIf(Task<tRet, RefType, Resumable>&& in_task, tTaskCancelFn in_cancelFn) /// @private
 {
 	static_assert(RefType == eTaskRef::Strong && Resumable == eTaskResumable::Yes, "Cannot call CancelIf() on WeakTask, TaskHandle or WeakTaskHandle");
-	return CancelIfImpl(MoveTemp(in_task), in_cancelFn);
+	return CancelIfImpl(std::move(in_task), in_cancelFn);
 }
 
 //--- Stop-If Implementation ---//
 template <typename tRet, typename tTimeFn>
-Task<TOptional<tRet>> StopIfImpl(Task<tRet> in_task, tTaskCancelFn in_cancelFn, TOptional<tTaskTime> in_timeout, tTimeFn in_timeFn) /// @private
+Task<std::optional<tRet>> StopIfImpl(Task<tRet> in_task, tTaskCancelFn in_cancelFn, std::optional<tTaskTime> in_timeout, tTimeFn in_timeFn) /// @private
 {
 	TASK_NAME("StopIf", [taskHandle = TaskHandle<tRet>(in_task), in_timeout]{
-		if(in_timeout)
-		{
-			return FString::Printf(TEXT("timeout = %.2f, task = %s"), in_timeout.GetValue(), *taskHandle.GetDebugStack());
-		}
-		else
-		{
-			return taskHandle.GetDebugStack();
-		}
-	});
+		return std::string("timeout = ") + (in_timeout ? std::to_string(in_timeout.value()) : "none") + ", task = " + taskHandle.GetDebugStack();
+		});
 
 	co_await AddStopTask(in_task); // Setup stop-request propagation
 
@@ -1071,9 +989,9 @@ Task<TOptional<tRet>> StopIfImpl(Task<tRet> in_task, tTaskCancelFn in_cancelFn, 
 		if(!in_task.IsStopRequested() && in_cancelFn && in_cancelFn())
 		{
 			in_task.RequestStop();
-			if(in_timeout)
+			if(in_timeout.has_value())
 			{
-				co_return co_await Timeout(MoveTemp(in_task), in_timeout.GetValue(), in_timeFn);
+				co_return co_await Timeout(std::move(in_task), in_timeout.value(), in_timeFn);
 			}
 		}
 		auto taskStatus = in_task.Resume();
@@ -1085,18 +1003,11 @@ Task<TOptional<tRet>> StopIfImpl(Task<tRet> in_task, tTaskCancelFn in_cancelFn, 
 	}
 }
 template <typename tTimeFn>
-Task<bool> StopIfImpl(Task<> in_task, tTaskCancelFn in_cancelFn, TOptional<tTaskTime> in_timeout, tTimeFn in_timeFn) /// @private
+Task<bool> StopIfImpl(Task<> in_task, tTaskCancelFn in_cancelFn, std::optional<tTaskTime> in_timeout, tTimeFn in_timeFn) /// @private
 {
 	TASK_NAME("StopIf", [taskHandle = TaskHandle<>(in_task), in_timeout]{
-		if(in_timeout)
-		{
-			return FString::Printf(TEXT("timeout = %.2f, task = %s"), in_timeout.GetValue(), *taskHandle.GetDebugStack());
-		}
-		else
-		{
-			return taskHandle.GetDebugStack();
-		}
-	});
+		return std::string("timeout = ") + (in_timeout ? std::to_string(in_timeout.value()) : "none") + ", task = " + taskHandle.GetDebugStack();
+		});
 
 	co_await AddStopTask(in_task); // Setup stop-request propagation
 
@@ -1107,7 +1018,7 @@ Task<bool> StopIfImpl(Task<> in_task, tTaskCancelFn in_cancelFn, TOptional<tTask
 			in_task.RequestStop();
 			if(in_timeout)
 			{
-				co_return co_await Timeout(MoveTemp(in_task), in_timeout.GetValue(), in_timeFn);
+				co_return co_await Timeout(std::move(in_task), in_timeout.value(), in_timeFn);
 			}
 		}
 		auto taskStatus = in_task.Resume();
@@ -1122,21 +1033,21 @@ Task<bool> StopIfImpl(Task<> in_task, tTaskCancelFn in_cancelFn, TOptional<tTask
 template <typename tRet, eTaskRef RefType, eTaskResumable Resumable>
 auto StopTaskIf(Task<tRet, RefType, Resumable>&& in_task, tTaskCancelFn in_cancelFn) /// @private
 {
-	return StopIfImpl(MoveTemp(in_task), in_cancelFn, {}, (float(*)())nullptr);
+	return StopIfImpl(std::move(in_task), in_cancelFn, {}, (float(*)())nullptr);
 }
 
 #if SQUID_ENABLE_GLOBAL_TIME
 template <typename tRet, eTaskRef RefType, eTaskResumable Resumable>
 auto StopTaskIf(Task<tRet, RefType, Resumable>&& in_task, tTaskCancelFn in_cancelFn, tTaskTime in_timeout) /// @private
 {
-	return StopIfImpl(MoveTemp(in_task), in_cancelFn, in_timeout, GlobalTime()); // Default time function to global-time
+	return StopIfImpl(std::move(in_task), in_cancelFn, in_timeout, GlobalTime()); // Default time function to global-time
 }
 #else
 template <typename tRet, eTaskRef RefType, eTaskResumable Resumable>
 auto StopTaskIf(Task<tRet, RefType, Resumable>&& in_task, tTaskCancelFn in_cancelFn, tTaskTime in_timeout) /// @private Illegal global-time implementation
 {
 	static_assert(static_false<tRet>::value, "Global task time not enabled (see SQUID_ENABLE_GLOBAL_TIME in TasksConfig.h)");
-	return StopIfImpl(MoveTemp(in_task), in_cancelFn, in_timeout, nullptr); // Default time function to global-time
+	return StopIfImpl(std::move(in_task), in_cancelFn, in_timeout, nullptr); // Default time function to global-time
 }
 #endif //SQUID_ENABLE_GLOBAL_TIME
 
@@ -1145,7 +1056,7 @@ auto StopTaskIf(Task<tRet, RefType, Resumable>&& in_task, tTaskCancelFn in_cance
 {
 	// See forward-declaration for default arguments
 	static_assert(RefType == eTaskRef::Strong && Resumable == eTaskResumable::Yes, "Cannot call StopIf() on WeakTask, TaskHandle or WeakTaskHandle");
-	return StopIfImpl(MoveTemp(in_task), in_cancelFn, in_timeout, in_timeFn);
+	return StopIfImpl(std::move(in_task), in_cancelFn, in_timeout, in_timeFn);
 }
 
 /// @} end of addtogroup Tasks
