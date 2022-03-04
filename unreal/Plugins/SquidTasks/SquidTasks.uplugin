@@ -1,0 +1,25 @@
+{
+	"FileVersion": 1,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "SquidTasks",
+	"Description": "Giant Squid's Task Plugin",
+	"Category": "Other",
+	"CreatedBy": "Giant Squid",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"EnabledByDefault": true,
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "SquidTasks",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+	]
+}
