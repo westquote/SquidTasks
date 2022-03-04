@@ -35,7 +35,7 @@ using namespace Squid;
 
 class TextGameDebugStackFormatter : public TaskDebugStackFormatter
 {
-	FString Indent(int32_t in_indent) override
+	std::string Indent(int32_t in_indent) override
 	{
 		return TaskDebugStackFormatter::Indent(in_indent + 1); // Base indentation is 1, (instead of 0)
 	}
@@ -93,13 +93,13 @@ private:
 	struct Character;
 	struct Spell
 	{
-		using tTaskFn = TFunction<Task<>(const Spell&, Character&, Character&)>; // (Spell, Attacker, Defender)
+		using tTaskFn = std::function<Task<>(const Spell&, Character&, Character&)>; // (Spell, Attacker, Defender)
 		tTaskFn taskFn;
 		char shortcut = 0;
-		FString name;
+		std::string name;
 		int32_t mpCost = 5;
 		float cooldown = 1.0;
-		FString desc;
+		std::string desc;
 
 		bool operator<(const Spell& in_other) const
 		{
@@ -114,7 +114,7 @@ private:
 		static constexpr int32_t SAVE_FORMAT_VERSION = 0;
 
 		// Vital Stats
-		FString name;
+		std::string name;
 		int32_t health = 20;
 		int32_t maxHealth = 20;
 		int32_t mana = 0;
@@ -169,9 +169,9 @@ private:
 			auto WriteToFile = [&saveFile](const auto& in_val) {
 				saveFile.write((char*)&in_val, sizeof(in_val));
 			};
-			auto WriteStrToFile = [&saveFile, WriteToFile](const FString& in_val) {
-				WriteToFile((int32_t)in_val.Num());
-				saveFile.write(&in_val[0], in_val.Num());
+			auto WriteStrToFile = [&saveFile, WriteToFile](const std::string& in_val) {
+				WriteToFile((int32_t)in_val.size());
+				saveFile.write(&in_val[0], in_val.size());
 			};
 			if(saveFile.is_open())
 			{
@@ -192,7 +192,7 @@ private:
 				WriteToFile(intelligence);
 				WriteToFile(skillPoints);
 				WriteToFile(maxSkillPoints);
-				WriteToFile((int32_t)spellBook.Num());
+				WriteToFile((int32_t)spellBook.size());
 				for(const auto& spell : spellBook)
 				{
 					WriteStrToFile(spell.second.name);
@@ -205,10 +205,10 @@ private:
 			auto ReadFromFile = [&saveFile](auto& out_val) {
 				saveFile.read((char*)&out_val, sizeof(out_val));
 			};
-			auto ReadStrFromFile = [&saveFile, ReadFromFile](FString& out_val) {
+			auto ReadStrFromFile = [&saveFile, ReadFromFile](std::string& out_val) {
 				int32_t strSize = 0;
 				ReadFromFile(strSize);
-				out_val.SetNum(strSize);
+				out_val.resize(strSize);
 				saveFile.read(&out_val[0], strSize);
 			};
 			if(saveFile.is_open())
@@ -235,12 +235,12 @@ private:
 				ReadFromFile(spellBookSize);
 				while(spellBookSize-- > 0)
 				{
-					FString spellName;
+					std::string spellName;
 					ReadStrFromFile(spellName);
 					auto spell = in_game->GetSpellByName(spellName);
 					if(spell)
 					{
-						LearnSpell(spell.GetValue());
+						LearnSpell(spell.value());
 					}
 				}
 				return true;
@@ -249,7 +249,7 @@ private:
 		}
 
 		// Stats debug output
-		FString GetStatsString()
+		std::string GetStatsString()
 		{
 			std::stringstream statsStr;
 			statsStr << name << " - " << health << "/" << maxHealth << " HP";
@@ -263,7 +263,7 @@ private:
 			}
 			return statsStr.str();
 		}
-		FString GetFullStatsString()
+		std::string GetFullStatsString()
 		{
 			std::stringstream statsStr;
 			statsStr << name << " - Level " << level << ", " << health << "/" << maxHealth << " HP";
@@ -284,17 +284,17 @@ private:
 	// Game Data
 	struct GameData
 	{
-		using tWords = TArray<TArray<FString>>;
+		using tWords = std::vector<std::vector<std::string>>;
 		tWords words;
-		TArray<std::tuple<FString, FString>> riddles;
-		TArray<std::tuple<FString, TArray<FString>, TArray<FString>>> nyms;
+		std::vector<std::tuple<std::string, std::string>> riddles;
+		std::vector<std::tuple<std::string, std::vector<std::string>, std::vector<std::string>>> nyms;
 
 		void LoadData(TextGame* in_game)
 		{
 			// Load words list
-			FString line;
+			std::string line;
 			std::ifstream wordsFile("gamedata/words.txt");
-			words.SetNum(16);
+			words.resize(16);
 			for(auto& wordList : words)
 			{
 				wordList.reserve(100);
@@ -302,10 +302,10 @@ private:
 			while(std::getline(wordsFile, line))
 			{
 				line.erase(remove_if(line.begin(), line.end(), std::isspace), line.end());
-				size_t len = line.Num() - 1;
-				len = len >= words.Num() ? words.Num() - 1 : len;
+				size_t len = line.size() - 1;
+				len = len >= words.size() ? words.size() - 1 : len;
 				auto& wordList = words[len];
-				wordList.Add(line);
+				wordList.push_back(line);
 			}
 
 			// Load antonyms list
@@ -320,7 +320,7 @@ private:
 				auto antLine = line.substr(synEnd + 1);
 				auto syns = Split(synLine, ", ");
 				auto ants = Split(antLine, ", ");
-				nyms.Add({ word, syns, ants });
+				nyms.push_back({ word, syns, ants });
 			}
 
 			// Load riddles list
@@ -340,14 +340,14 @@ private:
 					answer = Rot13(answer);
 				}
 				answer.erase(remove_if(answer.begin(), answer.end(), std::isspace), answer.end());
-				riddles.Add({ riddle, answer });
+				riddles.push_back({ riddle, answer });
 			}
 			if(encodeRiddles)
 			{
 				std::ofstream riddlesEncFile("gamedata/riddles_enc.csv");
 				for(const auto& riddleTuple : riddles)
 				{
-					FString riddle, answer;
+					std::string riddle, answer;
 					std::tie(riddle, answer) = riddleTuple;
 					riddlesEncFile << '\"' << Rot13(riddle) << "\"," << Rot13(answer) << std::endl;
 				}
@@ -383,12 +383,12 @@ private:
 
 			if(!player.LoadFromFile(this))
 			{
-				co_await Teletype(FString("Welcome, ") + player.name + ", to GeneriQuest!");
+				co_await Teletype(std::string("Welcome, ") + player.name + ", to GeneriQuest!");
 				player.SaveToFile();
 			}
 			else
 			{
-				co_await Teletype(FString("Welcome back, ") + player.name + "!");
+				co_await Teletype(std::string("Welcome back, ") + player.name + "!");
 			}
 		}
 		else
@@ -452,7 +452,7 @@ private:
 				promptStr << "Select a stage [1-" << player.maxStage << "]:";
 				co_await Teletype(promptStr.str(), 0.0);
 				auto stageStr = co_await WaitForInput();
-				stage = StrToInt(stageStr).Get(0);
+				stage = StrToInt(stageStr).value_or(0);
 			}
 		}
 
@@ -546,19 +546,19 @@ private:
 		// Cannot continue if health is 0
 		if(player.health <= 0)
 		{
-			co_await Teletype(FString("You are too wounded to ") + practiceType + ". Get some sleep!");
+			co_await Teletype(std::string("You are too wounded to ") + practiceType + ". Get some sleep!");
 			co_return;
 		}
 
 		// Cannot continue if out of skill points
 		if(player.skillPoints <= 0)
 		{
-			co_await Teletype(FString("You can't ") + practiceType + " any more right now! Come back later...");
+			co_await Teletype(std::string("You can't ") + practiceType + " any more right now! Come back later...");
 			co_return;
 		}
 
 		// Quick format helper
-		auto FormatStat = [](const FString& in_name, int32_t in_value)
+		auto FormatStat = [](const std::string& in_name, int32_t in_value)
 		{
 			std::stringstream statStr;
 			statStr << in_name << " [" << in_value << "]";
@@ -572,7 +572,7 @@ private:
 			std::stringstream statusStr;
 			statusStr << "You have " << player.skillPoints << " SP left";
 			co_await Teletype(statusStr.str(), 0.0, 0.0);
-			TArray<Choice> choices = {
+			std::vector<Choice> choices = {
 					{ FormatStat("Strength", player.strength), [this, &player]() -> Task<> { co_await Practice_Strength(player); } },
 					{ FormatStat("Defense", player.defense), [this, &player]() -> Task<> { co_await Practice_Defense(player); } },
 					{ FormatStat("Speed", player.speed), [this, &player]() -> Task<> { co_await Practice_Speed(player); } },
@@ -581,15 +581,15 @@ private:
 			{
 				choices.insert(choices.end(), {
 					{ FormatStat("Magic", player.intelligence), [this, &player]() -> Task<> { co_await Practice_Magic(player); } },
-					{ FormatStat("Spells", (int32_t)player.spellBook.Num()), [this, &player]() -> Task<> { co_await Practice_Spells(player); } },
+					{ FormatStat("Spells", (int32_t)player.spellBook.size()), [this, &player]() -> Task<> { co_await Practice_Spells(player); } },
 				});
 			}
-			choices.Add({ "End Training", [&practiceComplete]() -> Task<> { practiceComplete = true; co_return; } });
+			choices.push_back({ "End Training", [&practiceComplete]() -> Task<> { practiceComplete = true; co_return; } });
 			co_await MultipleChoice("What would you like to work on?", choices);
 		}
 		if(player.skillPoints <= 0)
 		{
-			co_await Teletype(FString("No skill points remaining. Come back later to ") + practiceType + " more!", 0.0, 0.0);
+			co_await Teletype(std::string("No skill points remaining. Come back later to ") + practiceType + " more!", 0.0, 0.0);
 		}
 	}
 	Task<> Mode_Sleep(Character& player)
@@ -602,18 +602,18 @@ private:
 	}
 
 	// Skill Training Mini-Games
-	FString GetRandomWord(int32_t in_minLen = 1, int32_t in_maxLen = -1)
+	std::string GetRandomWord(int32_t in_minLen = 1, int32_t in_maxLen = -1)
 	{
-		int32_t maxWordLen = (int32_t)m_data.words.Num();
+		int32_t maxWordLen = (int32_t)m_data.words.size();
 		in_maxLen = in_maxLen < 0 || in_maxLen > maxWordLen ? maxWordLen :
 					in_maxLen < 1 ? 1 :
 					in_maxLen;
 		int32_t lenWords = RandInRange(in_minLen, in_maxLen);
 		const auto& wordList = m_data.words[lenWords - 1];
-		auto word = wordList[RandInt() % wordList.Num()];
+		auto word = wordList[RandInt() % wordList.size()];
 		return word;
 	}
-	Task<bool> WaitForInputAndCheck(const TArray<FString>& in_words, float in_timeout, const FString& in_successText, const FString& in_failureText, const FString& in_slowText)
+	Task<bool> WaitForInputAndCheck(const std::vector<std::string>& in_words, float in_timeout, const std::string& in_successText, const std::string& in_failureText, const std::string& in_slowText)
 	{
 		TASK_NAME(__FUNCTION__);
 
@@ -623,7 +623,7 @@ private:
 		{
 			for(const auto& word : in_words)
 			{
-				if(ToLower(input.GetValue()) == ToLower(word))
+				if(ToLower(input.value()) == ToLower(word))
 				{
 					co_await Teletype(in_successText, 2.0);
 					NewLine();
@@ -647,9 +647,9 @@ private:
 
 		// Gain 1 point of Strength (type difficult word on a timer)
 		co_await Teletype("Get ready...", 3.0f);
-		auto wordLength = Lookup(player.strength, TArray<int32_t>{3, 3, 3, 4, 4, 4, 5, 5, 6, 6, 7, 8, 8, 9, 9, 10, 11, 12, 13});
+		auto wordLength = Lookup(player.strength, std::vector<int32_t>{3, 3, 3, 4, 4, 4, 5, 5, 6, 6, 7, 8, 8, 9, 9, 10, 11, 12, 13});
 		auto word = GetRandomWord(wordLength, wordLength + 3);
-		co_await Teletype(FString("QUICK! Type the word '") + word + "'!", 0.0f);
+		co_await Teletype(std::string("QUICK! Type the word '") + word + "'!", 0.0f);
 		auto timePerWord = wordLength * 0.25f;
 		timePerWord = timePerWord < 2.0f ? 2.0f : timePerWord;
 
@@ -670,9 +670,9 @@ private:
 		// Gain 1 point of Defense (type word in reverse on a timer)
 		co_await Teletype("Get ready...", 3.0);
 
-		auto wordLength = Lookup(player.defense, TArray<int32_t>{3, 3, 3, 4, 4, 4, 5, 5, 6, 6, 7, 8, 8, 9, 9, 10, 11, 12, 13});
+		auto wordLength = Lookup(player.defense, std::vector<int32_t>{3, 3, 3, 4, 4, 4, 5, 5, 6, 6, 7, 8, 8, 9, 9, 10, 11, 12, 13});
 		auto word = GetRandomWord(wordLength, wordLength + 3);
-		co_await Teletype(FString("QUICK! Type the word '") + word + "' BACKWARDS!", 0.0f);
+		co_await Teletype(std::string("QUICK! Type the word '") + word + "' BACKWARDS!", 0.0f);
 		auto timePerWord = wordLength * 1.25f;
 		timePerWord = timePerWord < 5.0f ? 5.0f : timePerWord;
 		std::reverse(word.begin(), word.end()); // Reverse the word
@@ -693,13 +693,13 @@ private:
 
 		// Gain 1 point of Speed (type N words on a timer)
 		co_await Teletype("Get ready...", 3.0f);
-		FString words;
+		std::string words;
 		auto l = 1.66f; // long
 		auto m = 1.5f; // medium
 		auto s = 1.33f; // short
-		int32_t numWords = Lookup(player.speed, TArray<int32_t>{3, 3, 3, 4, 4, 5, 5, 5, 6, 6, 7});
-		auto wordLength  = Lookup(player.speed, TArray<int32_t>{3, 3, 3, 3, 4, 4, 5, 5, 5, 6, 6});
-		auto timePerWord = Lookup(player.speed, TArray<float> {l, l, l, l, m, m, m, m, s, s, s});
+		int32_t numWords = Lookup(player.speed, std::vector<int32_t>{3, 3, 3, 4, 4, 5, 5, 5, 6, 6, 7});
+		auto wordLength  = Lookup(player.speed, std::vector<int32_t>{3, 3, 3, 3, 4, 4, 5, 5, 5, 6, 6});
+		auto timePerWord = Lookup(player.speed, std::vector<float> {l, l, l, l, m, m, m, m, s, s, s});
 		for(auto i = 0; i < numWords; ++i)
 		{
 			if(i > 0)
@@ -728,29 +728,29 @@ private:
 
 		// Gain 1 point of Intelligence (type synonym or antonym of word on a timer)
 		co_await Teletype("Get ready...", 3.0f);
-		FString word;
-		TArray<FString> syns, ants;
-		std::tie(word, syns, ants) = m_data.nyms[RandInt() % m_data.nyms.Num()];
+		std::string word;
+		std::vector<std::string> syns, ants;
+		std::tie(word, syns, ants) = m_data.nyms[RandInt() % m_data.nyms.size()];
 		bool opposite = RandInt() % 2 == 0;
-		if(opposite && ants.Num() == 0)
+		if(opposite && ants.size() == 0)
 		{
 			opposite = false;
 		}
-		FString prompt;
-		FString targetWord;
+		std::string prompt;
+		std::string targetWord;
 		if(opposite)
 		{
-			prompt = FString("QUICK! Which of these is the opposite of '") + word + "'?";
-			targetWord = ants[RandInt() % ants.Num()];
+			prompt = std::string("QUICK! Which of these is the opposite of '") + word + "'?";
+			targetWord = ants[RandInt() % ants.size()];
 		}
 		else
 		{
-			prompt = FString("QUICK! Which of these is another word for '") + word + "'?";
-			targetWord = syns[RandInt() % syns.Num()];
+			prompt = std::string("QUICK! Which of these is another word for '") + word + "'?";
+			targetWord = syns[RandInt() % syns.size()];
 		}
 		auto timePerWord = 4.0f;
 		bool correct = false;
-		TArray<Choice> choices = {
+		std::vector<Choice> choices = {
 			{ targetWord, [&correct]() -> Task<> { correct = true; co_return; } },
 			{ GetRandomWord(4, 12), []() -> Task<> { co_return; } },
 			{ GetRandomWord(4, 12), []() -> Task<> { co_return; } },
@@ -777,26 +777,26 @@ private:
 		}
 		if(!fastEnough || !correct)
 		{
-			co_await Teletype(FString("The correct word was: ") + targetWord);
+			co_await Teletype(std::string("The correct word was: ") + targetWord);
 		}
 		NewLine();
 	}
-	TOptional<Spell> GetRandomNewSpell(Character& player)
+	std::optional<Spell> GetRandomNewSpell(Character& player)
 	{
 		const auto& arc = m_spellArchive;
 		const auto& sb = player.spellBook;
-		TArray<Spell> availableSpells;
+		std::vector<Spell> availableSpells;
 		std::copy_if(arc.begin(), arc.end(), std::back_inserter(availableSpells), [&sb](const Spell& spell) {
 			return sb.find(spell.shortcut) == sb.end();
 		});
-		if(availableSpells.Num() == 0)
+		if(availableSpells.size() == 0)
 		{
 			return {};
 		}
-		auto spell = availableSpells[RandInt() % availableSpells.Num()];
+		auto spell = availableSpells[RandInt() % availableSpells.size()];
 		return spell;
 	}
-	TOptional<Spell> GetSpellByName(const FString& in_name)
+	std::optional<Spell> GetSpellByName(const std::string& in_name)
 	{
 		for(const auto& spell : m_spellArchive)
 		{
@@ -826,8 +826,8 @@ private:
 		co_await Teletype("The Great Sphinx stands before you!");
 		co_await Teletype("She speaks: \"Answer me this riddle and I shall reveal what you seek...\"");
 		NewLine();
-		FString riddle, answer;
-		std::tie(riddle, answer) = m_data.riddles[RandInt() % m_data.riddles.Num()];
+		std::string riddle, answer;
+		std::tie(riddle, answer) = m_data.riddles[RandInt() % m_data.riddles.size()];
 		bool guessedCorrectly = false;
 		auto guessesRemaining = 3;
 		while(guessesRemaining > 0 && !guessedCorrectly)
@@ -839,7 +839,7 @@ private:
 
 			auto input = co_await WaitForInput();
 			auto spacePos = input.rfind(" ");
-			if(spacePos != FString::npos)
+			if(spacePos != std::string::npos)
 			{
 				input = input.substr(spacePos + 1);
 			}
@@ -858,18 +858,18 @@ private:
 			NewLine();
 
 			// Unlock the new spell for player
-			auto spell = spellMaybe.GetValue();
+			auto spell = spellMaybe.value();
 			player.LearnSpell(spell);
-			co_await Teletype(FString("Learned new spell: ") + spell.name + "!");
+			co_await Teletype(std::string("Learned new spell: ") + spell.name + "!");
 			std::stringstream spellStr;
 			spellStr << spell.name << " (" << spell.mpCost << " MP) - " << spell.desc;
 			co_await Teletype(spellStr.str());
-			co_await Teletype(FString("You can cast this spell during combat by pressing '") + spell.shortcut + "'!");
+			co_await Teletype(std::string("You can cast this spell during combat by pressing '") + spell.shortcut + "'!");
 			NewLine();
 		}
 		else
 		{
-			co_await Teletype(FString("You have failed... The true answer was '") + ToLower(answer) + "'", 2.0);
+			co_await Teletype(std::string("You have failed... The true answer was '") + ToLower(answer) + "'", 2.0);
 		}
 	}
 
@@ -994,7 +994,7 @@ private:
 	{
 		TASK_NAME(__FUNCTION__);
 
-		auto boltDmg = Lookup(in_attacker.intelligence, TArray<int32_t>{0, 1, 2, 3, 4, 6, 8, 10, 13, 16, 20});
+		auto boltDmg = Lookup(in_attacker.intelligence, std::vector<int32_t>{0, 1, 2, 3, 4, 6, 8, 10, 13, 16, 20});
 		in_defender.health -= boltDmg; // Bolt damage
 
 		std::stringstream attackStr;
@@ -1006,7 +1006,7 @@ private:
 	{
 		TASK_NAME(__FUNCTION__);
 
-		auto healAmount = Lookup(in_attacker.intelligence, TArray<int32_t>{0, 1, 2, 3, 4, 6, 8, 10, 13, 16, 20});
+		auto healAmount = Lookup(in_attacker.intelligence, std::vector<int32_t>{0, 1, 2, 3, 4, 6, 8, 10, 13, 16, 20});
 		in_attacker.health += healAmount; // Heal attacker
 
 		std::stringstream healStr;
@@ -1019,7 +1019,7 @@ private:
 		TASK_NAME(__FUNCTION__);
 
 		// Create persistent condition task that grants haste for N seconds
-		in_attacker.conditions.conditionTasks.Add(m_taskMgr.Run([](Character& in_attacker) -> Task<> {
+		in_attacker.conditions.conditionTasks.push_back(m_taskMgr.Run([](Character& in_attacker) -> Task<> {
 			TASK_NAME("Quicken Condition");
 
 			auto token = in_attacker.conditions.hasteTokens.TakeToken("Quicken Spell");
@@ -1036,17 +1036,17 @@ private:
 		TASK_NAME(__FUNCTION__);
 
 		// Create persistent condition task that grants regen
-		in_attacker.conditions.conditionTasks.Add(m_taskMgr.Run([](TextGame* self, Character& in_attacker) -> Task<> {
+		in_attacker.conditions.conditionTasks.push_back(m_taskMgr.Run([](TextGame* self, Character& in_attacker) -> Task<> {
 			TASK_NAME("Regen Condition");
 
 			auto token = in_attacker.conditions.regenTokens.TakeToken("Regen Spell");
 			float regenDelayTime = 0.8f;
-			int32_t totalRegens = Lookup(in_attacker.intelligence, TArray<int32_t>{0, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6});
+			int32_t totalRegens = Lookup(in_attacker.intelligence, std::vector<int32_t>{0, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6});
 
 			while(totalRegens-- > 0)
 			{
 				co_await WaitSeconds(regenDelayTime);
-				auto healAmount = Lookup(in_attacker.intelligence, TArray<int32_t>{0, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3});
+				auto healAmount = Lookup(in_attacker.intelligence, std::vector<int32_t>{0, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3});
 				in_attacker.health += healAmount; // Heal attacker
 				in_attacker.health = in_attacker.health > in_attacker.maxHealth ? in_attacker.maxHealth : in_attacker.health;
 
@@ -1065,17 +1065,17 @@ private:
 		TASK_NAME(__FUNCTION__);
 
 		// Create condition coroutine that afflicts poison for N seconds
-		in_attacker.conditions.conditionTasks.Add(m_taskMgr.Run([](TextGame* self, Character& in_attacker, Character& in_defender) -> Task<> {
+		in_attacker.conditions.conditionTasks.push_back(m_taskMgr.Run([](TextGame* self, Character& in_attacker, Character& in_defender) -> Task<> {
 			TASK_NAME("Poison Condition");
 
 			auto token = in_defender.conditions.poisonTokens.TakeToken("Poison Spell");
 			float poisonDelayTime = 1.2f;
-			int32_t totalPoisons = Lookup(in_attacker.intelligence, TArray<int32_t>{0, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6});
+			int32_t totalPoisons = Lookup(in_attacker.intelligence, std::vector<int32_t>{0, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6});
 
 			while(totalPoisons-- > 0)
 			{
 				co_await WaitSeconds(poisonDelayTime);
-				auto dmg = Lookup(in_attacker.intelligence, TArray<int32_t>{0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2});
+				auto dmg = Lookup(in_attacker.intelligence, std::vector<int32_t>{0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2});
 				in_defender.health -= dmg; // Heal attacker
 				in_defender.health = in_defender.health < 0 ? 0 : in_defender.health;
 
@@ -1094,11 +1094,11 @@ private:
 		TASK_NAME(__FUNCTION__);
 
 		// Create persistent condition task that stuns enemy for N seconds
-		in_attacker.conditions.conditionTasks.Add(m_taskMgr.Run([](Character& in_attacker, Character& in_defender) -> Task<> {
+		in_attacker.conditions.conditionTasks.push_back(m_taskMgr.Run([](Character& in_attacker, Character& in_defender) -> Task<> {
 			TASK_NAME("Stun Condition");
 
 			auto token = in_defender.conditions.stunTokens.TakeToken("Stun Spell");
-			float stunDur = (float)Lookup(in_attacker.intelligence, TArray<int32_t>{0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2});
+			float stunDur = (float)Lookup(in_attacker.intelligence, std::vector<int32_t>{0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2});
 			co_await WaitSeconds(stunDur);
 		}(in_attacker, in_defender))); // NOTE: Non-co_awaited lambda coroutines should always pass in their params, rather than capture them!
 
@@ -1111,7 +1111,7 @@ private:
 		TASK_NAME(__FUNCTION__);
 
 		// Create persistent condition task that fortifies enemy for 5 seconds
-		in_attacker.conditions.conditionTasks.Add(m_taskMgr.Run([](Character& in_attacker) -> Task<> {
+		in_attacker.conditions.conditionTasks.push_back(m_taskMgr.Run([](Character& in_attacker) -> Task<> {
 			TASK_NAME("Fortify Condition");
 
 			auto token = in_attacker.conditions.fortifyTokens.TakeToken("Fortify Spell");
@@ -1193,7 +1193,7 @@ private:
 	}
 
 	// Misc Tasks
-	Task<FString> WaitForInput()
+	Task<std::string> WaitForInput()
 	{
 		return m_textInput.WaitForInput();
 	}
@@ -1216,26 +1216,26 @@ private:
 	// Multiple-Choice
 	struct Choice
 	{
-		FString name;
-		TFunction<Task<>()> taskFn;
+		std::string name;
+		std::function<Task<>()> taskFn;
 	};
-	Task<> MultipleChoice(const FString& in_prompt, const TArray<Choice>& in_choices)
+	Task<> MultipleChoice(const std::string& in_prompt, const std::vector<Choice>& in_choices)
 	{
 		TASK_NAME(__FUNCTION__);
 
 		co_await Teletype(in_prompt);
-		for(size_t i = 0; i < in_choices.Num(); ++i)
+		for(size_t i = 0; i < in_choices.size(); ++i)
 		{
 			const auto& choice = in_choices[i];
 			std::stringstream choiceStr;
 			choiceStr << (i + 1) << ") " << choice.name;
-			co_await TeletypeChoice(choiceStr.str(), i == in_choices.Num() - 1 ? 0.0f : 0.02f);
+			co_await TeletypeChoice(choiceStr.str(), i == in_choices.size() - 1 ? 0.0f : 0.02f);
 		}
 		auto mode = co_await WaitForInput();
-		for(size_t i = 0; i < in_choices.Num(); ++i)
+		for(size_t i = 0; i < in_choices.size(); ++i)
 		{
 			const auto& choice = in_choices[i];
-			int32_t idx = StrToInt(mode).Get(-1);
+			int32_t idx = StrToInt(mode).value_or(-1);
 			if(idx == (i + 1) || ToLower(mode) == ToLower(choice.name))
 			{
 				NewLine();
@@ -1261,15 +1261,15 @@ private:
 
 	// Data helpers
 	template <typename T>
-	static T Lookup(int32_t in_key, const TArray<T>& in_vals)
+	static T Lookup(int32_t in_key, const std::vector<T>& in_vals)
 	{
-		SQUID_RUNTIME_CHECK(in_vals.Num(), "Attempted to lookup into an empty value set");
+		SQUID_RUNTIME_CHECK(in_vals.size(), "Attempted to lookup into an empty value set");
 
 		if(in_key < 0)
 		{
 			return in_vals[0];
 		}
-		else if(in_key >= (int32_t)in_vals.Num())
+		else if(in_key >= (int32_t)in_vals.size())
 		{
 			return in_vals.back();
 		}
@@ -1280,25 +1280,25 @@ private:
 	}
 
 	// String helpers
-	static TArray<FString> Split(const FString in_str, const FString in_delim)
+	static std::vector<std::string> Split(const std::string in_str, const std::string in_delim)
 	{
-		TArray<FString> tokens;
+		std::vector<std::string> tokens;
 		size_t start = 0;
 		size_t end = in_str.find(in_delim);
-		while(end != FString::npos)
+		while(end != std::string::npos)
 		{
 			auto token = in_str.substr(start, end - start);
-			if(token.Num() > 0)
+			if(token.size() > 0)
 			{
-				tokens.Add(token);
+				tokens.push_back(token);
 			}
-			start = end + in_delim.Num();
+			start = end + in_delim.size();
 			end = in_str.find(in_delim, start);
 		}
 		auto token = in_str.substr(start, end - start);
-		if(token.Num() > 0)
+		if(token.size() > 0)
 		{
-			tokens.Add(token);
+			tokens.push_back(token);
 		}
 		return tokens;
 	}
@@ -1308,16 +1308,16 @@ private:
 	{
 		std::cout << std::endl;
 	}
-	FString ToLower(FString in_str)
+	std::string ToLower(std::string in_str)
 	{
 		std::transform(in_str.begin(), in_str.end(), in_str.begin(), [](unsigned char c) { return std::tolower(c); });
 		return in_str;
 	}
-	bool IsStrNumeric(const FString& in_str)
+	bool IsStrNumeric(const std::string& in_str)
 	{
 		return !in_str.empty() && std::find_if(in_str.begin(), in_str.end(), [](unsigned char c) { return !std::isdigit(c); }) == in_str.end();
 	}
-	TOptional<int32_t> StrToInt(const FString& in_str)
+	std::optional<int32_t> StrToInt(const std::string& in_str)
 	{
 		if(IsStrNumeric(in_str))
 		{
@@ -1329,7 +1329,7 @@ private:
 			return {};
 		}
 	}
-	Task<> Teletype(const FString& in_str, float in_delay = 0.5, float in_rate = 0.03)
+	Task<> Teletype(const std::string& in_str, float in_delay = 0.5, float in_rate = 0.03)
 	{
 		TASK_NAME(__FUNCTION__);
 
@@ -1341,13 +1341,13 @@ private:
 		co_await WaitSeconds(in_delay);
 		NewLine();
 	}
-	Task<> TeletypeChoice(const FString& in_str, float in_delay = 0.25, float in_rate = 0.02)
+	Task<> TeletypeChoice(const std::string& in_str, float in_delay = 0.25, float in_rate = 0.02)
 	{
 		return Teletype(in_str, in_delay, in_rate);
 	}
 
 	// Simple spoiler encryption
-	static FString Rot13(FString in_str)
+	static std::string Rot13(std::string in_str)
 	{
 		const int LOWER_A = 97;
 		const int LOWER_M = 109;
@@ -1359,7 +1359,7 @@ private:
 		const int UPPER_N = 78;
 		const int UPPER_Z = 90;
 
-		for(size_t index = 0; index < in_str.Num(); ++index)
+		for(size_t index = 0; index < in_str.size(); ++index)
 		{
 			auto c = in_str[index];
 			if(c >= LOWER_A && c <= LOWER_M)

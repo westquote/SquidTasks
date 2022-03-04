@@ -28,20 +28,20 @@ public:
 	void ClearInput()
 	{
 		std::lock_guard<std::mutex> inputLock(m_inputMutex);
-		m_inputStr.Reset();
+		m_inputStr.clear();
 	}
-	Task<FString> WaitForInput(bool in_echoText = true)
+	Task<std::string> WaitForInput(bool in_echoText = true)
 	{
 		TASK_NAME(__FUNCTION__);
 
 		ClearInput();
-		FString input;
+		std::string input;
 		while(true)
 		{
 			auto inputMaybe = GetNextInputChar();
 			if(inputMaybe)
 			{
-				auto c = inputMaybe.GetValue();
+				auto c = inputMaybe.value();
 				if(isalnum(c) || c == 32)
 				{
 					if(in_echoText)
@@ -53,7 +53,7 @@ public:
 				else if(c == 8) // Backspace
 				{
 					std::cout << c << ' ' << c;
-					input = input.substr(0, input.Num() - 1);
+					input = input.substr(0, input.size() - 1);
 				}
 				else if(c == '\r')
 				{
@@ -78,7 +78,7 @@ public:
 			auto inputMaybe = GetNextInputChar();
 			if(inputMaybe)
 			{
-				auto c = inputMaybe.GetValue();
+				auto c = inputMaybe.value();
 				if(isalnum(c) || c == 32 || c == 8 || c == '\r')
 				{
 					co_return c;
@@ -95,10 +95,10 @@ private:
 	std::mutex m_inputMutex;
 	std::list<char> m_inputStr;
 
-	TOptional<char> GetNextInputChar()
+	std::optional<char> GetNextInputChar()
 	{
 		std::lock_guard<std::mutex> inputLock(m_inputMutex);
-		if(m_inputStr.Num())
+		if(m_inputStr.size())
 		{
 			char c = m_inputStr.front();
 			m_inputStr.pop_front();
@@ -115,7 +115,7 @@ private:
 				char c = _getch();
 				{
 					std::lock_guard<std::mutex> inputLock(m_inputMutex);
-					m_inputStr.Add(c);
+					m_inputStr.push_back(c);
 				}
 				std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			}
