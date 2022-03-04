@@ -30,7 +30,9 @@ Enabling Coroutines for C++14/17 (skip this step if using C++20)
 ----------------------------------------------------------------
 C++ coroutines were only formally added to the standard with C++20.  In order to use them with earlier standards (C++14 or C++17), you must enable coroutines using a special compiler-specific compile flag.
 
-In __Visual Studio__, this is done by right-clicking your project and selecting Properties.  Then navigate to Configuration Properties -> C/C++ -> Command Line, and add ```/await:strict``` to “Additional Options”:
+In __Visual Studio__, this is done by right-clicking your project and selecting Properties.  Then navigate to Configuration Properties -> C/C++ -> Command Line, and add ```/await``` to “Additional Options”.
+
+(__IMPORTANT NOTE:__ If you are using C++17, you should instead add ```/await:strict```  to "Additional Options", as above.)
 
 ![Enabling Coroutines in Visual Studio](images/setup02.png "Enabling Coroutines in Visual Studio")
 
