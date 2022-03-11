@@ -852,7 +852,10 @@ public:
 	void OnTaskPromiseDestroyed()
 	{
 		// Mark the return value as orphaned if it was never set
-		m_retValState = eTaskRetValState::Orphaned;
+		if (m_retValState == eTaskRetValState::Unset)
+		{
+			m_retValState = eTaskRetValState::Orphaned;
+		}
 	}
 
 private:
