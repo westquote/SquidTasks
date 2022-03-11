@@ -106,7 +106,7 @@ struct AddStopTaskAwaiter
 	}
 
 private:
-	template <typename tRet> friend class TaskPromiseBase;
+	template <typename tOtherRet> friend class TaskPromiseBase;
 	Task<tRet, RefType, Resumable>* m_taskToStop = nullptr;
 };
 
@@ -126,7 +126,7 @@ struct RemoveStopTaskAwaiter
 	}
 
 private:
-	template <typename tRet> friend class TaskPromiseBase;
+	template <typename tOtherRet> friend class TaskPromiseBase;
 	Task<tRet, RefType, Resumable>* m_taskToStop = nullptr;
 };
 
