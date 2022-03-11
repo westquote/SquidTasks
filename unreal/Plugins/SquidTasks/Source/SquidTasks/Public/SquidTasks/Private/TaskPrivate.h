@@ -418,15 +418,15 @@ public:
 	}
 #endif //SQUID_ENABLE_TASK_DEBUG
 
-	template <typename tRet, eTaskRef RefType, eTaskResumable Resumable>
-	auto await_transform(AddStopTaskAwaiter<tRet, RefType, Resumable> in_awaiter)
+	template <typename tInnerRet, eTaskRef RefType, eTaskResumable Resumable>
+	auto await_transform(AddStopTaskAwaiter<tInnerRet, RefType, Resumable> in_awaiter)
 	{
 		m_taskInternal->AddStopTask(*in_awaiter.m_taskToStop);
 		return std::suspend_never();
 	}
 
-	template <typename tRet, eTaskRef RefType, eTaskResumable Resumable>
-	auto await_transform(RemoveStopTaskAwaiter<tRet, RefType, Resumable> in_awaiter)
+	template <typename tInnerRet, eTaskRef RefType, eTaskResumable Resumable>
+	auto await_transform(RemoveStopTaskAwaiter<tInnerRet, RefType, Resumable> in_awaiter)
 	{
 		m_taskInternal->RemoveStopTask(*in_awaiter.m_taskToStop);
 		return std::suspend_never();
