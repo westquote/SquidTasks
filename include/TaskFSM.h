@@ -14,8 +14,8 @@ class TaskFSM;
 
 namespace FSM
 {
-// State ID wrapper
-struct StateId
+
+struct StateId /// State ID handle, representing a unique state ID with "invalid id" semantics
 {
 	StateId() = default;
 	StateId(int32_t in_idx) : idx(in_idx) {}
@@ -27,23 +27,23 @@ struct StateId
 	int32_t idx = INT32_MAX; // Default to invalid idx
 };
 
-// State transition debug data
-struct TransitionDebugData
+//--- Transition functions ---//
+struct TransitionDebugData /// Debug state transition data (used by debug-state-transition callbacks)
 {
-	FSM::StateId oldStateId;
-	std::string oldStateName;
-	FSM::StateId newStateId;
-	std::string newStateName;
+	FSM::StateId oldStateId; ///< Outgoing state's id
+	std::string oldStateName; ///< Outgoing state's name
+	FSM::StateId newStateId; ///< Incoming state's id
+	std::string newStateName; ///< Incoming state's name
 };
 
-// State transition callback function
-using tOnStateTransitionFn = std::function<void()>;
+using tOnStateTransitionFn = std::function<void()>; ///< State transition callback function type (non-debug)
+using tDebugStateTransitionFn = std::function<void(TransitionDebugData)>; ///< Debug state transition callback function type
 
 #include "Private/TaskFSMPrivate.h" // Internal use only! Do not include elsewhere!
 
 //--- State Handle ---//
 template<class tStateInput, class tStateConstructorFn>
-class StateHandle
+class StateHandle /// Control handle
 {
 	using tPredicateRet = typename std::conditional<!std::is_void<tStateInput>::value, std::optional<tStateInput>, bool>::type;
 	using tPredicateFn = std::function<tPredicateRet()>;
@@ -51,7 +51,7 @@ public:
 	StateHandle(StateHandle&& in_other) = default;
 	StateHandle& operator=(StateHandle&& in_other) = default;
 
-	StateId GetId() const //< Get the ID of this state
+	StateId GetId() const ///< Get the ID of this state
 	{
 		return m_state ? m_state->idx : StateId{};
 	}
@@ -152,13 +152,12 @@ template<class tStateInput, class tStateConstructorFn>
 using StateHandle = FSM::StateHandle<tStateInput, tStateConstructorFn>;
 using TransitionDebugData = FSM::TransitionDebugData;
 using tOnStateTransitionFn = FSM::tOnStateTransitionFn;
+using tDebugStateTransitionFn = FSM::tDebugStateTransitionFn;
 
 //--- TaskFSM ---//
 class TaskFSM
 {
 public:
-	using tDebugStateTransitionFn = std::function<void(TransitionDebugData)>;
-
 	// Create a new FSM state [fancy param-deducing version (hopefully) coming soon!]
 	template<typename tStateConstructorFn>
 	auto State(std::string in_name, tStateConstructorFn in_stateCtorFn)
