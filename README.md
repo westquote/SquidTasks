@@ -8,7 +8,7 @@ Overview of Squid::Tasks
 Squid::Tasks is a header-only library consisting of several top-level headers within the include directory.
 
 - ```Task.h``` - Task-handles and standard awaiters [REQUIRED]
-- ```TaskManager.```h - Manager that runs and resumes a collection of tasks
+- ```TaskManager.h``` - Manager that runs and resumes a collection of tasks
 - ```TokenList.h``` - Data structure for tracking decentralized state across multiple tasks
 - ```FunctionGuard.h``` - Scope guard that calls a function as it leaves scope
 - ```TaskFSM.h``` - Finite state machine that implements states using task factories
