@@ -41,6 +41,8 @@ Note that each platform has its own `___ToolChain.cs` file. For example, there's
 
 One more note: The flag `/await:strict` is only fully supported in visual Studio 16.11 and newer. If you're using an older version of Visual Studio, use the `/await` flag instead.
 
+Once this is edit is finished, start a build. It may take a while, so it's a good idea to have this running while you work on the next steps.
+
 Step 2: Adding the Squid::Tasks Plugin
 --------------------------------------
 
