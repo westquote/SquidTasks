@@ -146,7 +146,7 @@ First, open the "Place Actors" Window:
 
 Next, search for the "Task Hello World" actor, and drag one into the scene:
 
-![Searching for the Task Hello World actor within the Place Actors Window](images/PlaceActors_Dropdown_UE5.png "Searching for the Task Hello World actor within the Place Actors Window")
+![Searching for the Task Hello World actor within the Place Actors Window](images/PlaceActors_HelloWorld_UE5.png "Searching for the Task Hello World actor within the Place Actors Window")
 
 In order to see the "hello" world text we're logging, we need to open the Output Log:
 
