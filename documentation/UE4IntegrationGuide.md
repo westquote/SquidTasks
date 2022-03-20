@@ -55,7 +55,7 @@ Step 3: Add SquidTasks as a dependency of our game module
 ---------------------------------------------------------
 Now that we've added our plugin, we need to tell our game's [module](https://docs.unrealengine.com/4.27/en-US/ProgrammingAndScripting/ProgrammingWithCPP/Modules/) to rely on it. 
 
-The name of the file we need to edit is different from game to game. If our game project was called MyGame, then we'd need to edit a file called `MyGame.Build.cs`, and it will probably be located at `<project directory>/Source/MyGame/MyGame.Build.cs`. More generally, the file will be called `_____.Build.cs`, and there may be more than one in your project.
+The name of the file we need to edit is different from game to game. If our game project was called MyGame, then we'd need to edit a file called `MyGame.Build.cs`, and it will probably be located at `<project directory>/Source/MyGame/MyGame.Build.cs`.
 
 The contents of this file should look something like this, although again it will differ from game to game, and from module to module:
 
