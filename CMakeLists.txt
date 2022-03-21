@@ -6,7 +6,9 @@ add_library(${PROJECT_NAME} INTERFACE)
 
 # There doesn't seem to be a coroutines feature in CMAKE_CXX_KNOWN_FEATURES
 target_compile_features(${PROJECT_NAME} INTERFACE "cxx_std_20")
-target_compile_options(${PROJECT_NAME} INTERFACE "-fcoroutines")
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  target_compile_options(${PROJECT_NAME} INTERFACE "-fcoroutines")
+endif()
 
 target_include_directories(${PROJECT_NAME} INTERFACE include)
 
