@@ -24,6 +24,7 @@ endif()
 target_include_directories(${PROJECT_NAME} INTERFACE include)
 
 target_sources(${PROJECT_NAME} INTERFACE
+  include/TaskTypes.h
   include/Task.h
   include/TaskManager.h
   include/TasksConfig.h

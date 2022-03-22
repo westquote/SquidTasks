@@ -44,5 +44,16 @@
 
 /// @} end of addtogroup Config
 
-//--- C++17/C++20 Compatibility ---//
-#include "Private/TasksCommonPrivate.h"
+// Namespace macros (enabled/disabled via SQUID_ENABLE_NAMESPACE)
+#if SQUID_ENABLE_NAMESPACE
+#define NAMESPACE_SQUID_BEGIN namespace Squid {
+#define NAMESPACE_SQUID_END }
+#define NAMESPACE_SQUID Squid
+#else
+#define NAMESPACE_SQUID_BEGIN
+#define NAMESPACE_SQUID_END
+#define NAMESPACE_SQUID
+namespace Squid {} // Convenience to allow 'using namespace Squid' even when namespace is disabled
+#endif
+
+
