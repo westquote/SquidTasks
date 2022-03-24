@@ -21,7 +21,7 @@ Integrating Squid::Tasks
 The steps for integrating Squid::Tasks into your game depends on how your game is built:
 
  * [Integrating Squid::Tasks into an Unreal Engine 4 project](documentation/UE4IntegrationGuide.md)
- * [Integrating Squid::Tasks into an Unreal Engine 5 project](documentation/UE4IntegrationGuide.md)
+ * [Integrating Squid::Tasks into an Unreal Engine 5 project](documentation/UE5IntegrationGuide.md)
  * [Integrating Squid::Tasks into a standalone Visual Studio project](documentation/StandaloneIntegrationGuide.md)
 
 Configuring Squid::Tasks with TasksConfig.h
