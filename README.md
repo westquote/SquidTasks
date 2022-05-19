@@ -6,6 +6,9 @@ Full project and source code available at https://github.com/westquote/SquidTask
 
 Full API documentation can be found at https://westquote.github.io/SquidTasks/.
 
+## License
+Squid::Tasks is developed by Tim Ambrogi Saxon and Elliott Mahler at Giant Squid Studios, and uses the [MIT License](https://en.wikipedia.org/wiki/MIT_License).
+
 ## Overview of Squid::Tasks
 Squid::Tasks consists of several top-level headers within the include directory.
 
@@ -16,9 +19,6 @@ Squid::Tasks consists of several top-level headers within the include directory.
 - ```TaskFSM.h``` - Finite state machine that implements states using task factories
 
 Sample projects can be found under the @c /samples directory.
-
-## License
-Squid::Tasks is developed by Tim Ambrogi Saxon and Elliott Mahler at Giant Squid Studios, and uses the [MIT License](https://en.wikipedia.org/wiki/MIT_License).
 
 ## Integrating Squid::Tasks
 The steps for integrating Squid::Tasks into your game depends on how your game is built:
