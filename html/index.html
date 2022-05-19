@@ -87,21 +87,12 @@ $(document).ready(function(){initNavTree('index.html',''); initResizable(); });
   <div class="headertitle"><div class="title">SquidTasks </div></div>
 </div><!--header-->
 <div class="contents">
-<div class="toc"><h3>Table of Contents</h3>
-<ul><li class="level1"><a href="#autotoc_md10">Overview of Squid::Tasks</a></li>
-<li class="level1"><a href="#autotoc_md11">Integrating Squid::Tasks</a></li>
-<li class="level1"><a href="#autotoc_md12">Configuring Squid::Tasks with TasksConfig.h</a></li>
-<li class="level1"><a href="#autotoc_md13">An Example First Task</a></li>
-<li class="level1"><a href="#autotoc_md14">Next Steps</a></li>
-<li class="level1"><a href="#autotoc_md15">Appendices</a><ul><li class="level2"><a href="#autotoc_md16">APPENDIX A: Enabling Global Time Support</a></li>
-</ul>
-</li>
-</ul>
-</div>
-<div class="textblock"><p ><a class="anchor" id="md_README"></a></p>
+<div class="textblock"><p ><a class="anchor" id="md_README"></a> Squid::Tasks is a header-only C++14 coroutine-based task library for games.</p>
+<p >Full project and source code available at <a href="https://github.com/westquote/SquidTasks/">https://github.com/westquote/SquidTasks/</a>.</p>
+<p >Full API documentation can be found at <a href="https://westquote.github.io/SquidTasks/">https://westquote.github.io/SquidTasks/</a>.</p>
 <h1><a class="anchor" id="autotoc_md10"></a>
 Overview of Squid::Tasks</h1>
-<p >Squid::Tasks is a header-only library consisting of several top-level headers within the include directory.</p>
+<p >Squid::Tasks consists of several top-level headers within the include directory.</p>
 <ul>
 <li><code><a class="el" href="_task_8h_source.html">Task.h</a></code> - Task-handles and standard awaiters [REQUIRED]</li>
 <li><code><a class="el" href="_task_manager_8h_source.html">TaskManager.h</a></code> - Manager that runs and resumes a collection of tasks</li>
@@ -111,6 +102,9 @@ Overview of Squid::Tasks</h1>
 </ul>
 <p >Sample projects can be found under the <code>/samples</code> directory.</p>
 <h1><a class="anchor" id="autotoc_md11"></a>
+License</h1>
+<p >Squid::Tasks is developed by Tim Ambrogi Saxon and Elliott Mahler at Giant Squid Studios, and uses the <a href="https://en.wikipedia.org/wiki/MIT_License">MIT License</a>.</p>
+<h1><a class="anchor" id="autotoc_md12"></a>
 Integrating Squid::Tasks</h1>
 <p >The steps for integrating Squid::Tasks into your game depends on how your game is built:</p>
 <ul>
@@ -118,7 +112,7 @@ Integrating Squid::Tasks</h1>
 <li>Integrating Squid::Tasks into an Unreal Engine 5 project</li>
 <li>Integrating Squid::Tasks into a standalone Visual Studio project</li>
 </ul>
-<h1><a class="anchor" id="autotoc_md12"></a>
+<h1><a class="anchor" id="autotoc_md13"></a>
 Configuring Squid::Tasks with TasksConfig.h</h1>
 <p >The Squid::Tasks library can be configured in a variety of important ways. This is done by enabling and disabling preprocessor values within the <a class="el" href="_tasks_config_8h_source.html">include/TasksConfig.h</a> file:</p>
 <ul>
@@ -128,7 +122,7 @@ Configuring Squid::Tasks with TasksConfig.h</h1>
 <li><b>SQUID_USE_EXCEPTIONS</b>: Enables experimental (largely-untested) exception-handling, and replaces all asserts with runtime_error exceptions</li>
 <li><b>SQUID_ENABLE_GLOBAL_TIME</b>: Enables global time support (alleviating the need to specify a time stream for time-sensitive awaiters) <b>[see Appendix A for more details]</b></li>
 </ul>
-<h1><a class="anchor" id="autotoc_md13"></a>
+<h1><a class="anchor" id="autotoc_md14"></a>
 An Example First Task</h1>
 <p >To get started using Squid::Tasks, the first step is to write and execute your first task from within your project. Many modern C++ game engines feature some sort of "actor" class - a game entity that exists within the scene and is updated each frame. Our example code assume this class exists, but the same principles will apply for projects that are written under a different paradigm.</p>
 <p >The first step is to identify an actor class that would benefit from coroutine support, such as an enemy actor. Here is an example Enemy class from a hypothetical 2D game:</p>
@@ -242,13 +236,13 @@ An Example First Task</h1>
 <li><a class="el" href="group___awaiters.html#ga844758e35c6f1a45e2254deecdfacf98" title="Awaiter function that waits until a given functor returns true.">WaitUntil()</a> -&gt; Waits until a given function returns true</li>
 </ul>
 <p >With these 3 awaiters, it is possible to implement enormously complex state machines with relatively straightforward code. (To learn about the other awaiters that come with Squid::Tasks, refer to the <a class="el" href="group___awaiters.html">Awaiters</a> documentation.)</p>
-<h1><a class="anchor" id="autotoc_md14"></a>
+<h1><a class="anchor" id="autotoc_md15"></a>
 Next Steps</h1>
 <p >Hopefully, this brief tutorial has given you an outline of the steps required to integrate coroutines into your own projects. From here, we recommend exploring the "GeneriQuest" sample project under <code>samples/Sample_TextGame</code>. It demonstrates both simple and complex applications of coroutines in a simple text-based game example.</p>
 <p >This is the end of the tutorial documentation (for now)! If you made it this far, feel free to write to [tim at giantsquidstudios.com] to let us know any ways in which our documentation could have been more useful for you in learning to use Squid::Tasks!</p>
-<h1><a class="anchor" id="autotoc_md15"></a>
+<h1><a class="anchor" id="autotoc_md16"></a>
 Appendices</h1>
-<h2><a class="anchor" id="autotoc_md16"></a>
+<h2><a class="anchor" id="autotoc_md17"></a>
 APPENDIX A: Enabling Global Time Support</h2>
 <p >Every game project has its own method of updating and measuring game time. Most games feature multiple different "time-streams", such as "game time", "real time", "editor time", "paused time", "audio time", etc... Because of this, the Squid::Tasks library requires each time-sensitive awaiter (e.g. <code><a class="el" href="group___awaiters.html#gad09d1c3766b54864b929aef77424e392" title="Awaiter function that waits N seconds in a given time-stream.">WaitSeconds()</a></code>, <code><a class="el" href="group___awaiters.html#ga85609f2caa4ab4f8ffb82afab66e9add" title="Awaiter function that wraps a given task, canceling it after N seconds in a given time-stream....">Timeout()</a></code>, etc) to be presented with a time-stream function that returns the current time in the desired time-stream. By convention, these time-streams are passed as functions into the final argument of time-sensitive awaiters.</p>
 <p >A final (optional) step of integrating Squid::Tasks is to enable global time support and implement a global Squid::GetTime() function.</p>

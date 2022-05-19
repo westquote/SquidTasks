@@ -27,12 +27,13 @@ var NAVTREE =
   [ "Squid::Tasks", "index.html", [
     [ "SquidTasks", "index.html", [
       [ "Overview of Squid::Tasks", "index.html#autotoc_md10", null ],
-      [ "Integrating Squid::Tasks", "index.html#autotoc_md11", null ],
-      [ "Configuring Squid::Tasks with TasksConfig.h", "index.html#autotoc_md12", null ],
-      [ "An Example First Task", "index.html#autotoc_md13", null ],
-      [ "Next Steps", "index.html#autotoc_md14", null ],
-      [ "Appendices", "index.html#autotoc_md15", [
-        [ "APPENDIX A: Enabling Global Time Support", "index.html#autotoc_md16", null ]
+      [ "License", "index.html#autotoc_md11", null ],
+      [ "Integrating Squid::Tasks", "index.html#autotoc_md12", null ],
+      [ "Configuring Squid::Tasks with TasksConfig.h", "index.html#autotoc_md13", null ],
+      [ "An Example First Task", "index.html#autotoc_md14", null ],
+      [ "Next Steps", "index.html#autotoc_md15", null ],
+      [ "Appendices", "index.html#autotoc_md16", [
+        [ "APPENDIX A: Enabling Global Time Support", "index.html#autotoc_md17", null ]
       ] ]
     ] ],
     [ "Modules", "modules.html", "modules" ],
