@@ -61,6 +61,8 @@ Task<> TestFsmTask()
 	auto fsmTask = fsm.Run();
 	fsmTask.RequestStop();
 	co_await std::move(fsmTask);
+
+	co_await WaitUntil([] { return true; });
 }
 
 void TestTaskFSM()

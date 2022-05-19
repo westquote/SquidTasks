@@ -102,7 +102,7 @@ public:
 	}
 
 private:
-	friend class ::TaskFSM;
+	friend class NAMESPACE_SQUID::TaskFSM;
 
 	StateHandle() = delete;
 	StateHandle(std::shared_ptr<State<tStateInput, tStateConstructorFn>> InStatePtr)
