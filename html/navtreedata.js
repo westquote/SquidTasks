@@ -26,8 +26,8 @@ var NAVTREE =
 [
   [ "Squid::Tasks", "index.html", [
     [ "SquidTasks", "index.html", [
-      [ "Overview of Squid::Tasks", "index.html#autotoc_md10", null ],
-      [ "License", "index.html#autotoc_md11", null ],
+      [ "License", "index.html#autotoc_md10", null ],
+      [ "Overview of Squid::Tasks", "index.html#autotoc_md11", null ],
       [ "Integrating Squid::Tasks", "index.html#autotoc_md12", null ],
       [ "Configuring Squid::Tasks with TasksConfig.h", "index.html#autotoc_md13", null ],
       [ "An Example First Task", "index.html#autotoc_md14", null ],
