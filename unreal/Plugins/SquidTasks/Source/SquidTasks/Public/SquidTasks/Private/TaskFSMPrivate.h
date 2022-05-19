@@ -38,7 +38,7 @@ protected:
 
 	// Friends
 	template<class, class> friend class StateHandle;
-	friend class ::TaskFSM;
+	friend class NAMESPACE_SQUID::TaskFSM;
 
 	// Constructors (friend-only)
 	LinkHandle() = delete;

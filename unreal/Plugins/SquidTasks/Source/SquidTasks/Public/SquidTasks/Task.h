@@ -17,7 +17,7 @@
 #if SQUID_ENABLE_TASK_DEBUG
 /// @ingroup Tasks
 /// @brief Macro that instruments a task with a debug name string. Usually at the top of every task coroutine as @c TASK_NAME(__FUNCTION__)
-#define TASK_NAME(...) co_await SetDebugName(__VA_ARGS__);
+#define TASK_NAME(...) co_await NAMESPACE_SQUID::SetDebugName(__VA_ARGS__);
 #define DEBUG_STR , FString in_debugStr
 #define PASS_DEBUG_STR , in_debugStr
 #define MANUAL_DEBUG_STR(debugStr) , debugStr
