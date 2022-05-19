@@ -230,7 +230,7 @@ public:
 		AddRef();
 	}
 	Task(const Task& in_otherTask) /// Copy constructor (TaskHandle/WeakTaskHandle only)
-		: Task(in_otherTask.GetInternalTask())
+		: m_taskInternal(in_otherTask.GetInternalTask())
 	{
 		static_assert(IsCopyable(), "Cannot copy-construct Task/WeakTask (only TaskHandle/WeakTaskHandle)");
 		AddRef();
@@ -766,7 +766,6 @@ inline Task<> WaitForAny(std::vector<TaskSingleEntry> in_entries)
 }
 
 /// Awaiter task that manages a set of other awaiters and waits until all of them are done
-COROUTINE_OPTIMIZE_OFF // NOTE: There is a compiler optimization bug in versions of Clang used on some platforms that cause it to crash when compiling this function
 inline Task<> WaitForAll(std::vector<TaskSingleEntry> in_entries)
 {
 	TASK_NAME_ENTRIES_ALL(__FUNCTION__, in_entries);
@@ -793,7 +792,6 @@ inline Task<> WaitForAll(std::vector<TaskSingleEntry> in_entries)
 		co_await Suspend();
 	}
 }
-COROUTINE_OPTIMIZE_ON
 
 /// Awaiter task that behaves like WaitForAny(), but returns a value associated with whichever awaiter finishes first
 template<class tValue>
