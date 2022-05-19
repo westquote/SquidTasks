@@ -3,18 +3,6 @@
 //--- User configuration header ---//
 #include "../TasksConfig.h"
 
-// Namespace macros (enabled/disabled via SQUID_ENABLE_NAMESPACE)
-#if SQUID_ENABLE_NAMESPACE
-#define NAMESPACE_SQUID_BEGIN namespace Squid {
-#define NAMESPACE_SQUID_END }
-#define NAMESPACE_SQUID Squid
-#else
-#define NAMESPACE_SQUID_BEGIN
-#define NAMESPACE_SQUID_END
-#define NAMESPACE_SQUID
-namespace Squid {} // Convenience to allow 'using namespace Squid' even when namespace is disabled
-#endif
-
 // Exception macros (to support environments with exceptions disabled)
 #if SQUID_USE_EXCEPTIONS && (defined(__cpp_exceptions) || defined(__EXCEPTIONS))
 #include <stdexcept>

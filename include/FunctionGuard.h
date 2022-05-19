@@ -51,6 +51,9 @@
 //--- User configuration header ---//
 #include "TasksConfig.h"
 
+//--- C++17/C++20 Compatibility ---//
+#include "Private/TasksCommonPrivate.h"
+
 NAMESPACE_SQUID_BEGIN
 
 template <typename tFn = std::function<void()>>
