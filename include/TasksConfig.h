@@ -1,9 +1,9 @@
 #pragma once
 
 // Squid::Tasks version (major.minor.patch)
-#define SQUID_TASKS_VERSION_MAJOR 0
-#define SQUID_TASKS_VERSION_MINOR 2
-#define SQUID_TASKS_VERSION_PATCH 1
+#define SQUID_TASKS_VERSION_MAJOR 1
+#define SQUID_TASKS_VERSION_MINOR 0
+#define SQUID_TASKS_VERSION_PATCH 0
 
 /// @defgroup Config Configuration
 /// @brief Configuration settings for the Squid::Tasks library

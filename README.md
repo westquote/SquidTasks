@@ -1,4 +1,4 @@
-# SquidTasks 0.2.0
+# SquidTasks
 
 [TOC]
 
