@@ -2,6 +2,8 @@
 
 Squid::Tasks is a header-only C++14 coroutine-based task library for games.
 
+Full project and source code available at https://github.com/westquote/SquidTasks/.
+
 Full API documentation can be found at https://westquote.github.io/SquidTasks/.
 
 ## Overview of Squid::Tasks
