@@ -55,6 +55,7 @@ NAMESPACE_SQUID_END
 #endif
 
 // False type for use in static_assert() [static_assert(false, ...) -> static_assert(static_false<T>, ...)]
+#include <type_traits>
 template<typename T>
 struct static_false : std::false_type
 {
