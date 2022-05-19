@@ -8,7 +8,7 @@ Overview of Squid::Tasks
 Squid::Tasks is a header-only library consisting of several top-level headers within the include directory.
 
 - ```Task.h``` - Task-handles and standard awaiters [REQUIRED]
-- ```TaskManager.```h - Manager that runs and resumes a collection of tasks
+- ```TaskManager.h``` - Manager that runs and resumes a collection of tasks
 - ```TokenList.h``` - Data structure for tracking decentralized state across multiple tasks
 - ```FunctionGuard.h``` - Scope guard that calls a function as it leaves scope
 - ```TaskFSM.h``` - Finite state machine that implements states using task factories
@@ -18,30 +18,14 @@ Sample projects can be found under the @c /samples directory.
 Integrating Squid::Tasks
 ========================
 
-Including the Headers
--------------------
-To integrate the Squid::Tasks library into your project, we recommend first copying the entire include directory into your project.  You must then add the path of the include directory to the list of include directories in your project.
+The steps for integrating Squid::Tasks into your game depends on how your game is built:
 
-In __Visual Studio__, this is done by right-clicking your project and selecting Properties. Then navigate to Configuration Properties -> C/C++ -> General, and add the the path to the include directory to “Additional Include Directories”.
+ * [Integrating Squid::Tasks into an Unreal Engine 4 project](documentation/UE4IntegrationGuide.md)
+ * [Integrating Squid::Tasks into an Unreal Engine 5 project](documentation/UE5IntegrationGuide.md)
+ * [Integrating Squid::Tasks into a standalone Visual Studio project](documentation/StandaloneIntegrationGuide.md)
 
-![Include Directory Settings in Visual Studio](images/setup01.png "Configuring Additional Include Directories in Visual Studio")
-
-Enabling Coroutines for C++14/17 (skip this step if using C++20)
-----------------------------------------------------------------
-C++ coroutines were only formally added to the standard with C++20.  In order to use them with earlier standards (C++14 or C++17), you must enable coroutines using a special compiler-specific compile flag.
-
-In __Visual Studio__, this is done by right-clicking your project and selecting Properties.  Then navigate to Configuration Properties -> C/C++ -> Command Line, and add ```/await``` to “Additional Options”.
-
-(__IMPORTANT NOTE:__ If you are using C++17, you should instead add ```/await:strict```  to "Additional Options", as shown below.)
-
-![Enabling Coroutines in Visual Studio](images/setup02.png "Enabling Coroutines in Visual Studio")
-
-If you are using __Clang__, you will need to add -fcoroutines-ts to your compiler command-line compilation parameters.
-
-If you are using the __Clang Platform Toolset__ from within Visual Studio, you will need to add -Xclang -fcoroutines-ts to your compiler command-line compilation parameters.
-
-Configure Squid::Tasks with TasksConfig.h
------------------------------------------
+Configuring Squid::Tasks with TasksConfig.h
+===========================================
 The Squid::Tasks library can be configured in a variety of important ways.  This is done by enabling and disabling preprocessor values within the include/TasksConfig.h file:
 
 - **SQUID_ENABLE_TASK_DEBUG**: Enables Task debug callstack tracking and debug names via Task::GetDebugStack() and Task::GetDebugName()
