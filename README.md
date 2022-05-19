@@ -1,11 +1,11 @@
 # SquidTasks
 
-[TOC]
+Squid::Tasks is a header-only C++14 coroutine-based task library for games.
 
-Overview of Squid::Tasks
-========================
+Full API documentation can be found at https://westquote.github.io/SquidTasks/.
 
-Squid::Tasks is a header-only library consisting of several top-level headers within the include directory.
+## Overview of Squid::Tasks
+Squid::Tasks consists of several top-level headers within the include directory.
 
 - ```Task.h``` - Task-handles and standard awaiters [REQUIRED]
 - ```TaskManager.h``` - Manager that runs and resumes a collection of tasks
@@ -15,23 +15,17 @@ Squid::Tasks is a header-only library consisting of several top-level headers wi
 
 Sample projects can be found under the @c /samples directory.
 
-Full API documentation can be found at https://westquote.github.io/SquidTasks/.
-
-License
-=======
+## License
 Squid::Tasks is developed by Tim Ambrogi Saxon and Elliott Mahler at Giant Squid Studios, and uses the [MIT License](https://en.wikipedia.org/wiki/MIT_License).
 
-Integrating Squid::Tasks
-========================
-
+## Integrating Squid::Tasks
 The steps for integrating Squid::Tasks into your game depends on how your game is built:
 
  * [Integrating Squid::Tasks into an Unreal Engine 4 project](documentation/UE4IntegrationGuide.md)
  * [Integrating Squid::Tasks into an Unreal Engine 5 project](documentation/UE5IntegrationGuide.md)
  * [Integrating Squid::Tasks into a standalone Visual Studio project](documentation/StandaloneIntegrationGuide.md)
 
-Configuring Squid::Tasks with TasksConfig.h
-===========================================
+## Configuring Squid::Tasks with TasksConfig.h
 The Squid::Tasks library can be configured in a variety of important ways.  This is done by enabling and disabling preprocessor values within the include/TasksConfig.h file:
 
 - **SQUID_ENABLE_TASK_DEBUG**: Enables Task debug callstack tracking and debug names via Task::GetDebugStack() and Task::GetDebugName()
@@ -40,9 +34,7 @@ The Squid::Tasks library can be configured in a variety of important ways.  This
 - **SQUID_USE_EXCEPTIONS**: Enables experimental (largely-untested) exception-handling, and replaces all asserts with runtime_error exceptions
 - **SQUID_ENABLE_GLOBAL_TIME**: Enables global time support (alleviating the need to specify a time stream for time-sensitive awaiters) **[see Appendix A for more details]**
 
-An Example First Task
-=====================
-
+## An Example First Task
 To get started using Squid::Tasks, the first step is to write and execute your first task from within your project. Many modern C++ game engines feature some sort of "actor" class - a game entity that exists within the scene and is updated each frame. Our example code assume this class exists, but the same principles will apply for projects that are written under a different paradigm.
 
 The first step is to identify an actor class that would benefit from coroutine support, such as an enemy actor. Here is an example Enemy class from a hypothetical 2D game:
@@ -170,19 +162,14 @@ The next thing we see is the new ```co_await``` keyword. The ```co_await <awaite
 
 With these 3 awaiters, it is possible to implement enormously complex state machines with relatively straightforward code. (To learn about the other awaiters that come with Squid::Tasks, refer to the \ref Awaiters documentation.)
 
-Next Steps
-==========
-
+## Next Steps
 Hopefully, this brief tutorial has given you an outline of the steps required to integrate coroutines into your own projects. From here, we recommend exploring the "GeneriQuest" sample project under ```samples/Sample_TextGame```.  It demonstrates both simple and complex applications of coroutines in a simple text-based game example.
 
 This is the end of the tutorial documentation (for now)! If you made it this far, feel free to write to [tim at giantsquidstudios.com] to let us know any ways in which our documentation could have been more useful for you in learning to use Squid::Tasks!
 
-Appendices
-==========
+## Appendices
 
-APPENDIX A: Enabling Global Time Support
-----------------------------------------
-
+### APPENDIX A: Enabling Global Time Support
 Every game project has its own method of updating and measuring game time.  Most games feature multiple different "time-streams", such as "game time", "real time", "editor time", "paused time", "audio time", etc... Because of this, the Squid::Tasks library requires each time-sensitive awaiter (e.g. ```WaitSeconds()```, ```Timeout()```, etc) to be presented with a time-stream function that returns the current time in the desired time-stream. By convention, these time-streams are passed as functions into the final argument of time-sensitive awaiters.
 
 A final (optional) step of integrating Squid::Tasks is to enable global time support and implement a global Squid::GetTime() function.
