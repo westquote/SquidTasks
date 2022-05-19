@@ -295,7 +295,7 @@ private:
 	void Sanitize() const
 	{
 		// Remove all invalid tokens
-		m_tokens.RemoveAll([](const Wp<Token>& in_token) { return !in_token.IsValid(); });
+		m_tokens.RemoveAll([](const TWeakPtr<Token>& in_token) { return !in_token.IsValid(); });
 	}
 	template <typename tFn>
 	void SanitizeAndProcessData(tFn in_dataFn) const
