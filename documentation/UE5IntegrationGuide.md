@@ -27,7 +27,7 @@ using System.Collections.Generic;
 
 public class MyGameEditorTarget : TargetRules
 {
-	public SurferEditorTarget( TargetInfo Target) : base(Target)
+	public GameEditorTarget( TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Editor;
 		DefaultBuildSettings = BuildSettingsVersion.V2;
@@ -35,7 +35,7 @@ public class MyGameEditorTarget : TargetRules
 }
 ```
 
-All we need to do is add a single line at the bottom of the constructor of `SurferEditorTarget`:
+All we need to do is add a single line at the bottom of the constructor of `GameEditorTarget`:
 
 `bEnableCppCoroutinesForEvaluation = true;`
 
