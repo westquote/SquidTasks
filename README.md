@@ -15,6 +15,12 @@ Squid::Tasks is a header-only library consisting of several top-level headers wi
 
 Sample projects can be found under the @c /samples directory.
 
+Full API documentation can be found at https://westquote.github.io/SquidTasks/.
+
+License
+========================
+Squid::Tasks is developed by Tim Ambrogi Saxon and Elliott Mahler at Giant Squid Studios, and uses the [MIT License](https://en.wikipedia.org/wiki/MIT_License).
+
 Integrating Squid::Tasks
 ========================
 
