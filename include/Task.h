@@ -10,6 +10,7 @@
  /// @defgroup Awaiters Awaiters
  /// @brief Versatile task awaiters that offer utility to most projects
 
+#include <algorithm>
 #include <functional>
 #include <future>
 #include <memory>
