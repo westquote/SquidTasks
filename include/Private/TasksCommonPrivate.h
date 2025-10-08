@@ -54,6 +54,12 @@ NAMESPACE_SQUID_END
 #define COROUTINE_OPTIMIZE_ON  _Pragma("clang optimize on")
 #endif
 
+#if defined(__clang__)
+#define SQUID_FORCENOINLINE __attribute__((noinline))
+#else
+#define SQUID_FORCENOINLINE __attribute__((noinline))
+#endif
+
 // False type for use in static_assert() [static_assert(false, ...) -> static_assert(static_false<T>, ...)]
 #include <type_traits>
 template<typename T>

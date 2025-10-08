@@ -225,6 +225,8 @@ public:
 	{
 		AddRef();
 	}
+	// Heap elision crash on clang https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0981r0.html
+	SQUID_FORCENOINLINE
 	Task(std::coroutine_handle<promise_type> in_coroHandle) /// @private
 		: m_taskInternal(std::make_shared<tTaskInternal>(in_coroHandle))
 	{
