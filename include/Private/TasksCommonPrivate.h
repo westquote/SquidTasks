@@ -57,7 +57,7 @@ NAMESPACE_SQUID_END
 #if defined(__clang__)
 #define SQUID_FORCENOINLINE __attribute__((noinline))
 #else
-#define SQUID_FORCENOINLINE __attribute__((noinline))
+#define SQUID_FORCENOINLINE
 #endif
 
 // False type for use in static_assert() [static_assert(false, ...) -> static_assert(static_false<T>, ...)]
