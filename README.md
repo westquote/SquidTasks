@@ -1,24 +1,24 @@
 # SquidTasks
 
-Squid::Tasks is a coroutine-based task library for games: header-only, C++14 and up.
+Squid::Tasks is a coroutine-based, header-only C++14 task library for games.
 
-Project page: https://squidtasks.plumfire.dev/
+Project homepage available at https://squidtasks.plumfire.dev/.
 
 Full project and source code available at https://github.com/westquote/SquidTasks/.
 
 Full API documentation can be found at https://westquote.github.io/SquidTasks/.
 
-For a tour of the ideas behind it, watch Elliott Mahler's GDC 2022 talk, [C++ Coroutines are NOW!](https://gdcvault.com/play/1028064/C-Coroutines-are-NOW).
+Elliott Mahler's GDC 2022 talk on using coroutines in The Pathless ([C++ Coroutines are NOW!](https://gdcvault.com/play/1028064/C-Coroutines-are-NOW)) can be found on the GDC Vault.
 
-## Used By
+## Projects Using Squid::Tasks
 - The Pathless (Giant Squid, 2020)
 - Sword of the Sea (Giant Squid, 2025)
-- [Untested](https://github.com/believer-oss/Untested), a coroutine-based testing framework for Unreal
+- [Untested](https://github.com/believer-oss/Untested) - Coroutine-based testing framework for Unreal
 
-Shipped something with Squid::Tasks? Write to [support@plumfire.dev](mailto:support@plumfire.dev) and we'll add it here.
+If you have shipped a project using Squid::Tasks, feel free to write to [support@plumfire.dev](mailto:support@plumfire.dev) to let us know!
 
 ## License
-Squid::Tasks was created by Tim Ambrogi Saxon and Elliott Mahler at Giant Squid Studios, and is now maintained by [Plumfire](https://plumfire.dev). It uses the [MIT License](https://github.com/westquote/SquidTasks/blob/main/LICENSE).
+Squid::Tasks was created by Tim Ambrogi Saxon and Elliott Mahler at Giant Squid Studios, is now maintained by [Plumfire](https://plumfire.dev), and uses the [MIT License](https://github.com/westquote/SquidTasks/blob/main/LICENSE).
 
 ## Overview of Squid::Tasks
 Squid::Tasks consists of several top-level headers within the include directory.
