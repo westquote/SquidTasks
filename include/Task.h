@@ -10,6 +10,7 @@
  /// @defgroup Awaiters Awaiters
  /// @brief Versatile task awaiters that offer utility to most projects
 
+#include <algorithm>
 #include <functional>
 #include <future>
 #include <memory>
@@ -216,7 +217,7 @@ public:
 	Task() /// Default constructor (constructs an invalid handle)
 	{
 	}
-	Task(nullptr_t) /// Null-pointer constructor (constructs an invalid handle)
+	Task(std::nullptr_t) /// Null-pointer constructor (constructs an invalid handle)
 	{
 	}
 	Task(std::shared_ptr<tTaskInternal> in_taskInternal) /// @private
@@ -224,6 +225,8 @@ public:
 	{
 		AddRef();
 	}
+	// Heap elision crash on clang https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0981r0.html
+	SQUID_FORCENOINLINE
 	Task(std::coroutine_handle<promise_type> in_coroHandle) /// @private
 		: m_taskInternal(std::make_shared<tTaskInternal>(in_coroHandle))
 	{
@@ -240,7 +243,7 @@ public:
 	{
 		// NOTE: No need to alter logical reference here (this is a move)
 	}
-	Task& operator=(nullptr_t) noexcept /// Null-pointer assignment operator (makes the handle invalid)
+	Task& operator=(std::nullptr_t) noexcept /// Null-pointer assignment operator (makes the handle invalid)
 	{
 		RemoveRef(); // Remove logical reference from old internal task
 		m_taskInternal = nullptr;

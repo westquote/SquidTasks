@@ -58,7 +58,7 @@ class FunctionGuard
 {
 public:
 	FunctionGuard() = default; /// Default constructor
-	FunctionGuard(nullptr_t) /// Null-pointer constructor
+	FunctionGuard(std::nullptr_t) /// Null-pointer constructor
 	{
 	}
 	FunctionGuard(tFn in_fn) /// Functor constructor
@@ -80,7 +80,7 @@ public:
 		in_other.Forget();
 		return *this;
 	}
-	FunctionGuard& operator=(nullptr_t) noexcept /// Null-pointer assignment operator (calls Forget() to clear the functor)
+	FunctionGuard& operator=(std::nullptr_t) noexcept /// Null-pointer assignment operator (calls Forget() to clear the functor)
 	{
 		Forget();
 		return *this;
