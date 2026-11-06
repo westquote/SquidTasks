@@ -51,7 +51,7 @@ PROJECT_BRIEF          = "C++14 coroutine-based task library for games"
 # pixels and the maximum width should not exceed 200 pixels. Doxygen will copy
 # the logo to the output directory.
 
-PROJECT_LOGO           =
+PROJECT_LOGO           = documentation/squidtasks-logo.svg
 
 # The OUTPUT_DIRECTORY tag is used to specify the (relative or absolute) path
 # into which the generated documentation will be written. If a relative path is
@@ -1265,7 +1265,7 @@ HTML_FILE_EXTENSION    = .html
 # of the possible markers and block names see the documentation.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-HTML_HEADER            =
+HTML_HEADER            = documentation/header.html
 
 # The HTML_FOOTER tag can be used to specify a user-defined HTML footer for each
 # generated HTML page. If the tag is left blank doxygen will generate a standard
@@ -1300,7 +1300,10 @@ HTML_STYLESHEET        =
 # list). For an example see the documentation.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-HTML_EXTRA_STYLESHEET  = documentation/doxygen-awesome.css
+HTML_EXTRA_STYLESHEET  = documentation/doxygen-awesome.css \
+                         documentation/doxygen-awesome-sidebar-only.css \
+                         documentation/doxygen-awesome-sidebar-only-darkmode-toggle.css \
+                         documentation/squidtasks-theme.css
 
 # The HTML_EXTRA_FILES tag can be used to specify one or more extra images or
 # other source files which should be copied to the HTML output directory. Note
@@ -1310,7 +1313,10 @@ HTML_EXTRA_STYLESHEET  = documentation/doxygen-awesome.css
 # files will be copied as-is; there are no commands or markers available.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-HTML_EXTRA_FILES       =
+HTML_EXTRA_FILES       = documentation/doxygen-awesome-darkmode-toggle.js \
+                         documentation/doxygen-awesome-fragment-copy-button.js \
+                         documentation/doxygen-awesome-paragraph-link.js \
+                         documentation/doxygen-awesome-interactive-toc.js
 
 # The HTML_COLORSTYLE_HUE tag controls the color of the HTML output. Doxygen
 # will adjust the colors in the style sheet and background images according to
@@ -1341,6 +1347,12 @@ HTML_COLORSTYLE_SAT    = 100
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
 HTML_COLORSTYLE_GAMMA  = 80
+
+# Doxygen Awesome handles the light/dark switch and the copy buttons
+
+HTML_COLORSTYLE        = LIGHT
+
+HTML_COPY_CLIPBOARD    = NO
 
 # If the HTML_TIMESTAMP tag is set to YES then the footer of each generated HTML
 # page will contain the date and time when the page was generated. Setting this
@@ -1638,7 +1650,7 @@ ENUM_VALUES_PER_LINE   = 4
 # Minimum value: 0, maximum value: 1500, default value: 250.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-TREEVIEW_WIDTH         = 250
+TREEVIEW_WIDTH         = 335
 
 # If the EXT_LINKS_IN_WINDOW option is set to YES, doxygen will open links to
 # external symbols imported via tag files in a separate window.

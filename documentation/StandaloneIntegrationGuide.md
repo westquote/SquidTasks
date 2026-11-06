@@ -1,3 +1,6 @@
+Integrating Squid::Tasks into a standalone Visual Studio project
+================================================================
+
 This guide will show you how to integrate Squid::Tasks into a standalone Visual Studio-based C++ project.
 
 Including the Headers

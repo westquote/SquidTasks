@@ -1,0 +1,191 @@
+/* Squid::Tasks theme (matches squidtasks.plumfire.dev, layered over Doxygen Awesome) */
+
+html {
+	--primary-color: #0F766E;
+	--primary-dark-color: #0B4F4F;
+	--primary-light-color: #5EEAD4;
+	--on-primary-color: #FFFFFF;
+	--link-color: #0F766E;
+
+	--page-background-color: #F4FAF9;
+	--page-foreground-color: #10282A;
+	--page-secondary-foreground-color: #4E6668;
+	--separator-color: #D6E8E6;
+	--odd-color: rgba(15, 118, 110, .04);
+
+	--side-nav-background: #EAF4F2;
+	--side-nav-foreground: #10282A;
+	--toc-background: #FFFFFF;
+	--toc-foreground: #4E6668;
+
+	--header-background: #F4FAF9;
+	--header-foreground: #10282A;
+	--searchbar-background: #FFFFFF;
+	--searchbar-foreground: #10282A;
+	--searchbar-border-radius: 999px;
+
+	--menu-focus-background: #D6E8E6;
+	--menu-focus-foreground: #10282A;
+	--menu-selected-background: #D6E8E6;
+	--tablehead-background: #EAF4F2;
+	--tablehead-foreground: #10282A;
+	--blockquote-background: #EAF4F2;
+	--blockquote-foreground: #4E6668;
+
+	--code-background: #E3F1EF;
+	--code-foreground: #0B4F4F;
+	--section-code-background: #FFFFFF;
+	--section-code-border: #D6E8E6;
+
+	--fragment-background: #0B2427;
+	--fragment-foreground: #D9F2EE;
+	--fragment-keyword: #5EEAD4;
+	--fragment-keywordtype: #5EEAD4;
+	--fragment-keywordflow: #5EEAD4;
+	--fragment-token: #FDE68A;
+	--fragment-comment: #7FA6A2;
+	--fragment-link: #99F6E4;
+	--fragment-preprocessor: #FCA5A5;
+	--fragment-linenumber-color: #4E6668;
+	--fragment-linenumber-background: #071517;
+	--fragment-linenumber-border: #23393B;
+
+	--font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+	--font-family-monospace: ui-monospace, "Cascadia Code", Consolas, monospace;
+	--page-font-size: 16px;
+	--code-font-size: 14px;
+
+	--border-radius-large: 16px;
+	--border-radius-medium: 12px;
+	--border-radius-small: 8px;
+	--box-shadow: 0 4px 14px rgba(4, 47, 51, .08);
+}
+
+html.dark-mode {
+	--primary-color: #2DD4BF;
+	--primary-dark-color: #5EEAD4;
+	--primary-light-color: #0F766E;
+	--on-primary-color: #042F33;
+	--link-color: #5EEAD4;
+
+	--page-background-color: #0C1718;
+	--page-foreground-color: #E3F1EF;
+	--page-secondary-foreground-color: #9DB7B4;
+	--separator-color: #23393B;
+	--odd-color: rgba(94, 234, 212, .04);
+
+	--side-nav-background: #0A1415;
+	--side-nav-foreground: #E3F1EF;
+	--toc-background: #132224;
+	--toc-foreground: #9DB7B4;
+
+	--header-background: #0C1718;
+	--header-foreground: #E3F1EF;
+	--searchbar-background: #132224;
+	--searchbar-foreground: #E3F1EF;
+
+	--menu-focus-background: #23393B;
+	--menu-focus-foreground: #E3F1EF;
+	--menu-selected-background: #23393B;
+	--tablehead-background: #132224;
+	--tablehead-foreground: #E3F1EF;
+	--blockquote-background: #132224;
+	--blockquote-foreground: #9DB7B4;
+
+	--code-background: #132224;
+	--code-foreground: #99F6E4;
+	--section-code-background: #132224;
+	--section-code-border: #23393B;
+
+	--fragment-background: #071517;
+	--fragment-foreground: #D9F2EE;
+	--fragment-keyword: #5EEAD4;
+	--fragment-keywordtype: #5EEAD4;
+	--fragment-keywordflow: #5EEAD4;
+	--fragment-token: #FDE68A;
+	--fragment-comment: #7FA6A2;
+	--fragment-link: #99F6E4;
+	--fragment-preprocessor: #FCA5A5;
+	--fragment-linenumber-color: #4E6668;
+	--fragment-linenumber-background: #050F10;
+	--fragment-linenumber-border: #23393B;
+	--box-shadow: 0 4px 14px rgba(0, 0, 0, .35);
+}
+
+/* Title Area (the site's hero gradient) */
+html {
+	--top-height: 156px;
+}
+#titlearea {
+	background: radial-gradient(400px 200px at 90% -20%, rgba(45, 212, 191, .45), transparent 60%), linear-gradient(135deg, #042F33, #0B4F4F 55%, #0F766E);
+	border-bottom: none;
+	padding: 14px 16px;
+}
+#projectbrief {
+	white-space: nowrap;
+	font-size: 13px;
+}
+@media screen and (min-width: 768px) {
+	#doc-content {
+		padding-top: var(--spacing-large);
+	}
+}
+#projectname, #projectbrief, #projectnumber {
+	color: #FFFFFF !important;
+}
+#projectname {
+	font-weight: 800;
+	letter-spacing: .01em;
+}
+#projectbrief {
+	color: rgba(255, 255, 255, .8) !important;
+}
+#projectlogo img {
+	width: 40px;
+	height: 40px;
+	max-height: none;
+	border-radius: 10px;
+	box-shadow: 0 4px 14px rgba(0, 30, 30, .3);
+}
+
+/* Headings */
+h1, h2, h3, div.headertitle .title {
+	font-weight: 800;
+	letter-spacing: -.3px;
+}
+div.headertitle .title {
+	letter-spacing: -.6px;
+}
+
+/* Code */
+div.fragment, pre.fragment {
+	border: none;
+	border-radius: var(--border-radius-large);
+	box-shadow: var(--box-shadow);
+}
+
+/* Member Declarations (light cards, keeping dark code for examples only) */
+table.memberdecls td.memItemLeft,
+table.memberdecls td.memItemRight,
+table.memberdecls .memTemplItemLeft,
+table.memberdecls .memTemplItemRight,
+table.memberdecls .memTemplParams {
+	background-color: var(--section-code-background);
+	color: var(--page-foreground-color);
+	border-color: var(--separator-color);
+}
+table.memberdecls td.memItemLeft a.el,
+table.memberdecls td.memItemRight a.el,
+table.memberdecls .memTemplItemRight a.el {
+	color: var(--link-color);
+}
+
+/* Member Boxes (match the site's cards) */
+.memitem {
+	border: 1px solid var(--separator-color);
+	border-radius: var(--border-radius-large);
+	box-shadow: none;
+}
+.memtitle {
+	border-radius: var(--border-radius-medium) var(--border-radius-medium) 0 0;
+}

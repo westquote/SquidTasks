@@ -1,3 +1,6 @@
+Integrating Squid::Tasks into an Unreal Engine 4 project
+========================================================
+
 This guide will show you how to integrate Squid::Tasks into an Unreal Engine 4 game project.
 
 Prerequisites
