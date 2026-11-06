@@ -18,7 +18,7 @@ For a tour of the ideas behind it, watch Elliott Mahler's GDC 2022 talk, [C++ Co
 Shipped something with Squid::Tasks? Write to [support@plumfire.dev](mailto:support@plumfire.dev) and we'll add it here.
 
 ## License
-Squid::Tasks was created by Tim Ambrogi Saxon and Elliott Mahler at Giant Squid Studios, and is now maintained by [Plumfire](https://plumfire.dev). It uses the [MIT License](LICENSE).
+Squid::Tasks was created by Tim Ambrogi Saxon and Elliott Mahler at Giant Squid Studios, and is now maintained by [Plumfire](https://plumfire.dev). It uses the [MIT License](https://github.com/westquote/SquidTasks/blob/main/LICENSE).
 
 ## Overview of Squid::Tasks
 Squid::Tasks consists of several top-level headers within the include directory.
