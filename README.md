@@ -10,6 +10,13 @@ Full API documentation can be found at https://westquote.github.io/SquidTasks/.
 
 For a tour of the ideas behind it, watch Elliott Mahler's GDC 2022 talk, [C++ Coroutines are NOW!](https://gdcvault.com/play/1028064/C-Coroutines-are-NOW).
 
+## Used By
+- The Pathless (Giant Squid, 2020)
+- Sword of the Sea (Giant Squid, 2025)
+- [Untested](https://github.com/believer-oss/Untested), a coroutine-based testing framework for Unreal
+
+Shipped something with Squid::Tasks? Write to [support@plumfire.dev](mailto:support@plumfire.dev) and we'll add it here.
+
 ## License
 Squid::Tasks was created by Tim Ambrogi Saxon and Elliott Mahler at Giant Squid Studios, and is now maintained by [Plumfire](https://plumfire.dev). It uses the [MIT License](LICENSE).
 
