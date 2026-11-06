@@ -1,10 +1,14 @@
 # SquidTasks
 
-Squid::Tasks is a header-only C++14 coroutine-based task library for games.
+Squid::Tasks is a coroutine-based task library for games: header-only, C++14 and up.
+
+Project page: https://squidtasks.plumfire.dev/
 
 Full project and source code available at https://github.com/westquote/SquidTasks/.
 
 Full API documentation can be found at https://westquote.github.io/SquidTasks/.
+
+For a tour of the ideas behind it, watch Elliott Mahler's GDC 2022 talk, [C++ Coroutines are NOW!](https://gdcvault.com/play/1028064/C-Coroutines-are-NOW).
 
 ## License
 Squid::Tasks was created by Tim Ambrogi Saxon and Elliott Mahler at Giant Squid Studios, and is now maintained by [Plumfire](https://plumfire.dev). It uses the [MIT License](LICENSE).
@@ -90,7 +94,7 @@ public:
 	}
 
 protected:
-	TaskManage m_taskMgr;
+	TaskManager m_taskMgr;
 };
 ```
 
