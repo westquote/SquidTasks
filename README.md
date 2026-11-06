@@ -7,7 +7,7 @@ Full project and source code available at https://github.com/westquote/SquidTask
 Full API documentation can be found at https://westquote.github.io/SquidTasks/.
 
 ## License
-Squid::Tasks is developed by Tim Ambrogi Saxon and Elliott Mahler at Giant Squid Studios, and uses the [MIT License](https://en.wikipedia.org/wiki/MIT_License).
+Squid::Tasks was created by Tim Ambrogi Saxon and Elliott Mahler at Giant Squid Studios, and is now maintained by [Plumfire](https://plumfire.dev). It uses the [MIT License](LICENSE).
 
 ## Overview of Squid::Tasks
 Squid::Tasks consists of several top-level headers within the include directory.
@@ -167,7 +167,7 @@ With these 3 awaiters, it is possible to implement enormously complex state mach
 ## Next Steps
 Hopefully, this brief tutorial has given you an outline of the steps required to integrate coroutines into your own projects. From here, we recommend exploring the "GeneriQuest" sample project under ```samples/Sample_TextGame```.  It demonstrates both simple and complex applications of coroutines in a simple text-based game example.
 
-This is the end of the tutorial documentation (for now)! If you made it this far, feel free to write to [tim at giantsquidstudios.com] to let us know any ways in which our documentation could have been more useful for you in learning to use Squid::Tasks!
+This is the end of the tutorial documentation (for now)! If you made it this far, feel free to write to [support@plumfire.dev](mailto:support@plumfire.dev) to let us know any ways in which our documentation could have been more useful for you in learning to use Squid::Tasks!
 
 ## Appendices
 
