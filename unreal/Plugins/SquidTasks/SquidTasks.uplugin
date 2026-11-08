@@ -1,7 +1,7 @@
 {
 	"FileVersion": 1,
-	"Version": 1,
-	"VersionName": "1.0",
+	"Version": 2,
+	"VersionName": "1.1.0",
 	"FriendlyName": "SquidTasks",
 	"Description": "Giant Squid's Task Plugin",
 	"Category": "Other",

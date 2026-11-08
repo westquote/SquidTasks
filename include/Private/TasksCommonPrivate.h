@@ -18,11 +18,13 @@ namespace Squid {} // Convenience to allow 'using namespace Squid' even when nam
 // Exception macros (to support environments with exceptions disabled)
 #if SQUID_USE_EXCEPTIONS && (defined(__cpp_exceptions) || defined(__EXCEPTIONS))
 #include <stdexcept>
+#define SQUID_EXCEPTIONS_ENABLED 1
 #define SQUID_THROW(exception, errStr) throw exception;
 #define SQUID_RUNTIME_ERROR(errStr) throw std::runtime_error(errStr);
 #define SQUID_RUNTIME_CHECK(condition, errStr) if(!(condition)) throw std::runtime_error(errStr);
 #else
 #include <cassert>
+#define SQUID_EXCEPTIONS_ENABLED 0
 #define SQUID_THROW(exception, errStr) assert(false && errStr);
 #define SQUID_RUNTIME_ERROR(errStr) assert(false && errStr);
 #define SQUID_RUNTIME_CHECK(condition, errStr) assert((condition) && errStr);
@@ -87,7 +89,9 @@ struct static_false : std::false_type
 #undef CPP_LANGUAGE_VERSION
 
 // C++20 Compatibility (std::coroutine)
-#if defined(__clang__) && defined(_STL_COMPILER_PREPROCESSOR) // Clang-friendly implementation of <coroutine> below
+#if HAS_CXX20 || defined(__cpp_impl_coroutine) || defined(SQUID_HAS_AWAIT_STRICT) // Built-in C++20 coroutines implementation (also /await:strict)
+#include <coroutine>
+#elif defined(__clang__) && defined(_STL_COMPILER_PREPROCESSOR) // Clang-friendly implementation of <coroutine> below
  // HACK: The above condition checks if we're compiling w/ Clang under Visual Studio
 #define USING_EXPERIMENTAL_COROUTINES
 namespace std {
@@ -172,8 +176,6 @@ namespace std {
 		}
 	}
 }
-#elif HAS_CXX20 || defined(SQUID_HAS_AWAIT_STRICT) // Built-in C++20 coroutines implementation
-#include <coroutine>
 #else // Built-in experimental coroutines implementation
 #define USING_EXPERIMENTAL_COROUTINES
 #include <experimental/coroutine>
@@ -198,6 +200,17 @@ namespace std
 #endif
 #ifndef SQUID_NODISCARD
 #define SQUID_NODISCARD
+#endif
+
+// No-inline macro (to work around a Clang optimizer bug when inlining the Task constructor)
+#ifndef SQUID_NOINLINE
+#if defined(_MSC_VER)
+#define SQUID_NOINLINE __declspec(noinline)
+#elif defined(__GNUC__) || defined(__clang__)
+#define SQUID_NOINLINE __attribute__((noinline))
+#else
+#define SQUID_NOINLINE
+#endif
 #endif
 
 // C++17 Compatibility (std::optional)

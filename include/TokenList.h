@@ -59,6 +59,8 @@
 /// to quickly find the highest DPS poison instance.
 
 #include <algorithm>
+#include <cstdint>
+#include <memory>
 #include <numeric>
 #include <vector>
 #include <string>
@@ -116,7 +118,7 @@ class TokenList
 {
 public:
 	/// Type of Token tracked by this container
-	using Token = typename std::conditional_t<std::is_void<T>::value, Token, DataToken<T>>;
+	using Token = typename std::conditional_t<std::is_void<T>::value, NAMESPACE_SQUID::Token, DataToken<T>>;
 
 	/// Create a token with the specified debug name
 	template <typename U = T, typename std::enable_if_t<std::is_void<U>::value>* = nullptr>

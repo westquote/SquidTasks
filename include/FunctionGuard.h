@@ -48,6 +48,9 @@
 /// FunctionGuard provides a simple general-purpose tool for writing robust, water-tight coroutine logic without the
 /// overhead of creating bespoke support classes.
 
+#include <cstddef>
+#include <functional>
+
 //--- User configuration header ---//
 #include "TasksConfig.h"
 
@@ -58,7 +61,7 @@ class FunctionGuard
 {
 public:
 	FunctionGuard() = default; /// Default constructor
-	FunctionGuard(nullptr_t) /// Null-pointer constructor
+	FunctionGuard(std::nullptr_t) /// Null-pointer constructor
 	{
 	}
 	FunctionGuard(tFn in_fn) /// Functor constructor
@@ -80,7 +83,7 @@ public:
 		in_other.Forget();
 		return *this;
 	}
-	FunctionGuard& operator=(nullptr_t) noexcept /// Null-pointer assignment operator (calls Forget() to clear the functor)
+	FunctionGuard& operator=(std::nullptr_t) noexcept /// Null-pointer assignment operator (calls Forget() to clear the functor)
 	{
 		Forget();
 		return *this;
@@ -89,9 +92,9 @@ public:
 	{
 		return IsBound();
 	}
-	bool IsBound() noexcept /// Returns whether functor has been bound to this FunctionGuard
+	bool IsBound() const noexcept /// Returns whether functor has been bound to this FunctionGuard
 	{
-		return m_fn;
+		return m_fn.has_value();
 	}
 	void Execute() /// Executes and clears the functor (if bound)
 	{

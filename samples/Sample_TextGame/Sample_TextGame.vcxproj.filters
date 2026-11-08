@@ -48,10 +48,10 @@
     <ClInclude Include="..\..\include\TaskFSM.h">
       <Filter>Source Files\SquidTasks</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\Private\TaskFSMPrivate.h">
+    <ClInclude Include="..\..\include\Private\TaskFSMPrivate.inl">
       <Filter>Source Files\SquidTasks\Private</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\Private\TaskPrivate.h">
+    <ClInclude Include="..\..\include\Private\TaskPrivate.inl">
       <Filter>Source Files\SquidTasks\Private</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\Private\TasksCommonPrivate.h">

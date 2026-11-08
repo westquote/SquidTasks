@@ -116,7 +116,7 @@ class TokenList
 {
 public:
 	/// Type of Token tracked by this container
-	using Token = typename std::conditional_t<std::is_void<T>::value, Token, DataToken<T>>;
+	using Token = typename std::conditional_t<std::is_void<T>::value, NAMESPACE_SQUID::Token, DataToken<T>>;
 
 	/// Create a token with the specified debug name
 	template <typename U = T, typename std::enable_if_t<std::is_void<U>::value>* = nullptr>
@@ -136,22 +136,24 @@ public:
 	template <typename U = T, typename std::enable_if_t<std::is_void<U>::value>* = nullptr>
 	SQUID_NODISCARD TSharedPtr<Token> TakeToken(FString in_name)
 	{
-		return AddToken(MakeToken(MoveTemp(in_name)));
+		return AddTokenInternal(MakeToken(MoveTemp(in_name)));
 	}
 
 	/// Create and add a token with the specified debug name and associated data
 	template <typename U = T, typename std::enable_if_t<!std::is_void<U>::value>* = nullptr>
 	SQUID_NODISCARD TSharedPtr<Token> TakeToken(FString in_name, U in_data)
 	{
-		return AddToken(MakeToken(MoveTemp(in_name), MoveTemp(in_data)));
+		return AddTokenInternal(MakeToken(MoveTemp(in_name), MoveTemp(in_data)));
 	}
 
 	/// Add an existing token to this container
 	TSharedPtr<Token> AddToken(TSharedPtr<Token> in_token)
 	{
 		SQUID_RUNTIME_CHECK(in_token, "Cannot add null token");
-		Sanitize();
-		m_tokens.AddUnique(in_token);
+		if(!m_tokens.Contains(in_token)) // Prevent duplicate tokens
+		{
+			return AddTokenInternal(in_token);
+		}
 		return in_token;
 	}
 
@@ -291,6 +293,14 @@ public:
 	}
 
 private:
+	// Shared internal implementation for adding tokens
+	TSharedPtr<Token> AddTokenInternal(TSharedPtr<Token> in_token)
+	{
+		Sanitize();
+		m_tokens.Add(in_token);
+		return in_token;
+	}
+
 	// Sanitation
 	void Sanitize() const
 	{

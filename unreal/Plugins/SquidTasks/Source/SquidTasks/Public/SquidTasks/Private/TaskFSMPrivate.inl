@@ -13,7 +13,7 @@ class LinkBase
 {
 public:
 	virtual ~LinkBase() = default;
-	virtual std::optional<TransitionEvent> EvaluateLink(const tOnStateTransitionFn& in_onTransitionFn) const = 0;
+	virtual TOptional<TransitionEvent> EvaluateLink(const tOnStateTransitionFn& in_onTransitionFn) const = 0;
 };
 
 // Type-safe link handle
@@ -42,19 +42,19 @@ protected:
 
 	// Constructors (friend-only)
 	LinkHandle() = delete;
-	LinkHandle(std::shared_ptr<LinkBase> in_link, eType in_linkType, bool in_isConditional)
-		: m_link(std::move(in_link))
+	LinkHandle(TSharedPtr<LinkBase> in_link, eType in_linkType, bool in_isConditional)
+		: m_link(MoveTemp(in_link))
 		, m_linkType(in_linkType)
 		, m_isConditionalLink(in_isConditional)
 	{
 	}
-	std::optional<TransitionEvent> EvaluateLink(const tOnStateTransitionFn& in_onTransitionFn) const
+	TOptional<TransitionEvent> EvaluateLink(const tOnStateTransitionFn& in_onTransitionFn) const
 	{
 		return m_link->EvaluateLink(in_onTransitionFn);
 	}
 
 private:
-	std::shared_ptr<LinkBase> m_link; // The underlying link
+	TSharedPtr<LinkBase> m_link; // The underlying link
 	eType m_linkType; // Whether the link is normal or OnComplete
 	bool m_isConditionalLink; // Whether the link has an associated condition predicate
 };
@@ -63,7 +63,7 @@ private:
 template<class tStateInput, class tStateConstructorFn>
 struct State
 {
-	State(tStateConstructorFn in_stateCtorFn, StateId in_stateId, std::string in_debugName)
+	State(tStateConstructorFn in_stateCtorFn, StateId in_stateId, FString in_debugName)
 		: stateCtorFn(in_stateCtorFn)
 		, stateId(in_stateId)
 		, debugName(in_debugName)
@@ -72,21 +72,21 @@ struct State
 
 	tStateConstructorFn stateCtorFn;
 	StateId stateId;
-	std::string debugName;
+	FString debugName;
 };
 
 // Internal FSM state object (exit state specialization)
 template<>
 struct State<void, void>
 {
-	State(StateId in_stateId, std::string in_debugName)
+	State(StateId in_stateId, FString in_debugName)
 		: stateId(in_stateId)
 		, debugName(in_debugName)
 	{
 	}
 
 	StateId stateId;
-	std::string debugName;
+	FString debugName;
 };
 
 // Internal link definition object
@@ -94,28 +94,28 @@ template<class ReturnT, class tStateConstructorFn, class tPredicateFn>
 class Link : public LinkBase
 {
 public:
-	Link(std::shared_ptr<State<ReturnT, tStateConstructorFn>> in_targetState, tPredicateFn in_predicate)
-	: m_targetState(std::move(in_targetState))
+	Link(TSharedPtr<State<ReturnT, tStateConstructorFn>> in_targetState, tPredicateFn in_predicate)
+	: m_targetState(MoveTemp(in_targetState))
 	, m_predicate(in_predicate)
 	{
 	}
 
 private:
-	virtual std::optional<TransitionEvent> EvaluateLink(const tOnStateTransitionFn& in_onTransitionFn) const final
+	virtual TOptional<TransitionEvent> EvaluateLink(const tOnStateTransitionFn& in_onTransitionFn) const final
 	{
-		std::optional<TransitionEvent> result;
-		if(std::optional<ReturnT> payload = m_predicate())
+		TOptional<TransitionEvent> result;
+		if(TOptional<ReturnT> payload = m_predicate())
 		{
 			if(in_onTransitionFn)
 			{
 				in_onTransitionFn();
 			}
-			result = TransitionEvent{ m_targetState->stateCtorFn(payload.value()), m_targetState->stateId };
+			result = TransitionEvent{ m_targetState->stateCtorFn(payload.GetValue()), m_targetState->stateId };
 		}
 		return result;
 	}
 
-	std::shared_ptr<State<ReturnT, tStateConstructorFn>> m_targetState;
+	TSharedPtr<State<ReturnT, tStateConstructorFn>> m_targetState;
 	tPredicateFn m_predicate;
 };
 
@@ -124,16 +124,16 @@ template<class tStateConstructorFn, class tPredicateFn>
 class Link<void, tStateConstructorFn, tPredicateFn> : public LinkBase
 {
 public:
-	Link(std::shared_ptr<State<void, tStateConstructorFn>> in_targetState, tPredicateFn in_predicate)
-		: m_targetState(std::move(in_targetState))
+	Link(TSharedPtr<State<void, tStateConstructorFn>> in_targetState, tPredicateFn in_predicate)
+		: m_targetState(MoveTemp(in_targetState))
 		, m_predicate(in_predicate)
 	{
 	}
 
 private:
-	virtual std::optional<TransitionEvent> EvaluateLink(const tOnStateTransitionFn& in_onTransitionFn) const final
+	virtual TOptional<TransitionEvent> EvaluateLink(const tOnStateTransitionFn& in_onTransitionFn) const final
 	{
-		std::optional<TransitionEvent> result;
+		TOptional<TransitionEvent> result;
 		if(m_predicate())
 		{
 			if(in_onTransitionFn)
@@ -145,7 +145,7 @@ private:
 		return result;
 	}
 
-	std::shared_ptr<State<void, tStateConstructorFn>> m_targetState;
+	TSharedPtr<State<void, tStateConstructorFn>> m_targetState;
 	tPredicateFn m_predicate;
 };
 
@@ -154,16 +154,16 @@ template<class tPredicateFn>
 class Link<void, void, tPredicateFn> : public LinkBase
 {
 public:
-	Link(std::shared_ptr<State<void, void>> in_targetState, tPredicateFn in_predicate)
-		: m_targetState(std::move(in_targetState))
+	Link(TSharedPtr<State<void, void>> in_targetState, tPredicateFn in_predicate)
+		: m_targetState(MoveTemp(in_targetState))
 		, m_predicate(in_predicate)
 	{
 	}
 
 private:
-	virtual std::optional<TransitionEvent> EvaluateLink(const tOnStateTransitionFn& in_onTransitionFn) const final
+	virtual TOptional<TransitionEvent> EvaluateLink(const tOnStateTransitionFn& in_onTransitionFn) const final
 	{
-		std::optional<TransitionEvent> result;
+		TOptional<TransitionEvent> result;
 		if(m_predicate())
 		{
 			if(in_onTransitionFn)
@@ -175,16 +175,16 @@ private:
 		return result;
 	}
 
-	std::shared_ptr<State<void, void>> m_targetState;
+	TSharedPtr<State<void, void>> m_targetState;
 	tPredicateFn m_predicate;
 };
 
 // Specialized type traits that deduce the first argument type of an arbitrary callable type
 template <typename tRet, typename tArg>
-static tArg get_first_arg_type(std::function<tRet(tArg)> f); // Return type is first argument type
+tArg get_first_arg_type(TFunction<tRet(tArg)> f); // Return type is first argument type
 
 template <typename tRet>
-static void get_first_arg_type(std::function<tRet()> f); // Return type is void (function has no arguments)
+void get_first_arg_type(TFunction<tRet()> f); // Return type is void (function has no arguments)
 
 template <typename T>
 struct function_traits : public function_traits<decltype(&T::operator())> // Generic callable objects (use operator())
@@ -194,27 +194,27 @@ struct function_traits : public function_traits<decltype(&T::operator())> // Gen
 template <typename tRet, typename... tArgs> // Function
 struct function_traits<tRet(tArgs...)>
 {
-	using tFunction = std::function<tRet(tArgs...)>;
+	using tFunction = TFunction<tRet(tArgs...)>;
 	using tArg = decltype(get_first_arg_type(tFunction()));
 };
 
 template <typename tRet, typename... tArgs> // Function ptr
 struct function_traits<tRet(*)(tArgs...)>
 {
-	using tFunction = std::function<tRet(tArgs...)>;
+	using tFunction = TFunction<tRet(tArgs...)>;
 	using tArg = decltype(get_first_arg_type(tFunction()));
 };
 
 template <typename tClass, typename tRet, typename... tArgs> // Member function ptr (const)
 struct function_traits<tRet(tClass::*)(tArgs...) const>
 {
-	using tFunction = std::function<tRet(tArgs...)>;
+	using tFunction = TFunction<tRet(tArgs...)>;
 	using tArg = decltype(get_first_arg_type(tFunction()));
 };
 
 template <typename tClass, typename tRet, typename... tArgs> // Member function ptr
 struct function_traits<tRet(tClass::*)(tArgs...)>
 {
-	using tFunction = std::function<tRet(tArgs...)>;
+	using tFunction = TFunction<tRet(tArgs...)>;
 	using tArg = decltype(get_first_arg_type(tFunction()));
 };

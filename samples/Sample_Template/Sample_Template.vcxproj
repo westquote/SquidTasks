@@ -24,8 +24,8 @@
   <ItemGroup>
     <ClInclude Include="..\..\include\FunctionGuard.h" />
     <ClInclude Include="..\..\include\Private\TasksCommonPrivate.h" />
-    <ClInclude Include="..\..\include\Private\TaskFSMPrivate.h" />
-    <ClInclude Include="..\..\include\Private\TaskPrivate.h" />
+    <ClInclude Include="..\..\include\Private\TaskFSMPrivate.inl" />
+    <ClInclude Include="..\..\include\Private\TaskPrivate.inl" />
     <ClInclude Include="..\..\include\Task.h" />
     <ClInclude Include="..\..\include\TaskFSM.h" />
     <ClInclude Include="..\..\include\TaskManager.h" />

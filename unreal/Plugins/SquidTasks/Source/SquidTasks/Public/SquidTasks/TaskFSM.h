@@ -14,8 +14,8 @@ class TaskFSM;
 
 namespace FSM
 {
-// State ID wrapper
-struct StateId
+
+struct StateId /// State ID handle, representing a unique state ID with "invalid id" semantics
 {
 	StateId() = default;
 	StateId(int32_t in_idx) : idx(in_idx) {}
@@ -27,23 +27,22 @@ struct StateId
 	int32_t idx = INT32_MAX; // Default to invalid idx
 };
 
-// State transition debug data
-struct TransitionDebugData
+//--- Transition functions ---//
+struct TransitionDebugData /// Debug state transition data (used by debug-state-transition callbacks)
 {
-	FSM::StateId oldStateId;
-	FString oldStateName;
-	FSM::StateId newStateId;
-	FString newStateName;
+	FSM::StateId oldStateId; ///< Outgoing state's id
+	FString oldStateName; ///< Outgoing state's name
+	FSM::StateId newStateId; ///< Incoming state's id
+	FString newStateName; ///< Incoming state's name
 };
 
-// State transition callback function
-using tOnStateTransitionFn = TFunction<void()>;
+using tOnStateTransitionFn = TFunction<void()>; ///< State transition callback function type (non-debug)
 
-#include "Private/TaskFSMPrivate.h" // Internal use only! Do not include elsewhere!
+#include "Private/TaskFSMPrivate.inl" // Internal use only! Do not include elsewhere!
 
 //--- State Handle ---//
 template<class tStateInput, class tStateConstructorFn>
-class StateHandle
+class StateHandle /// Control handle
 {
 	using tPredicateRet = typename std::conditional<!std::is_void<tStateInput>::value, TOptional<tStateInput>, bool>::type;
 	using tPredicateFn = TFunction<tPredicateRet()>;
@@ -51,9 +50,9 @@ public:
 	StateHandle(StateHandle&& in_other) = default;
 	StateHandle& operator=(StateHandle&& in_other) = default;
 
-	StateId GetId() const //< Get the ID of this state
+	StateId GetId() const ///< Get the ID of this state
 	{
-		return m_state ? m_state->idx : StateId{};
+		return m_state ? m_state->stateId : StateId{};
 	}
 
 // SFINAE Template Declaration Macros (#defines)
@@ -221,21 +220,18 @@ void TaskFSM::StateLinks(const FSM::StateHandle<tStateInput, tStateConstructorFn
 	SQUID_RUNTIME_CHECK(m_states[stateIdx].outgoingLinks.Num() == 0, "Cannot set outgoing links more than once for each state");
 
 	// Validate that there are exactly 0 or 1 unconditional OnComplete links (there may be any number of other OnComplete links, but only one with no condition)
-	int32_t numOnCompleteLinks = 0;
 	int32_t numOnCompleteLinks_Unconditional = 0;
 	for(const FSM::LinkHandle& link : in_outgoingLinks)
 	{
 		if(link.IsOnCompleteLink())
 		{
 			SQUID_RUNTIME_CHECK(numOnCompleteLinks_Unconditional == 0, "Cannot call OnCompleteLink() after calling OnCompleteLink() with no conditions (unreachable link)");
-			++numOnCompleteLinks;
 			if(!link.HasCondition())
 			{
 				numOnCompleteLinks_Unconditional++;
 			}
 		}
 	}
-	SQUID_RUNTIME_CHECK(numOnCompleteLinks == 0 || numOnCompleteLinks_Unconditional > 0, "More than one unconditional OnCompleteLink() was set");
 
 	// Set the outgoing links for the origin state
 	m_states[stateIdx].outgoingLinks = MoveTemp(in_outgoingLinks);

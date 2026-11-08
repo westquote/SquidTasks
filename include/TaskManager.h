@@ -76,6 +76,8 @@
 /// multiple tick functions (such as one for pre-physics updates and one for post-physics updates), then instantiating
 /// a second "post-physics" task manager may be desirable.
 
+#include <algorithm>
+#include <string>
 #include <vector>
 
 #include "Task.h"
@@ -87,7 +89,12 @@ NAMESPACE_SQUID_BEGIN
 class TaskManager
 {
 public:
-	~TaskManager() {} /// Destructor (disables copy/move construction + assignment)
+	~TaskManager() /// Destructor (disables copy/move construction + assignment)
+	{
+		// Move the task lists out before destroying them (killed tasks can run code that adds new tasks to this manager)
+		auto tasks = std::move(m_tasks);
+		auto strongRefs = std::move(m_strongRefs); // Destroyed before tasks (same order as the member destructors)
+	}
 
 	/// @brief Run an unmanaged task
 	/// @details Run() return a @ref TaskHandle<> that holds a strong reference to the task. If there are ever no
@@ -102,7 +109,7 @@ public:
 		return taskHandle;
 	}
 	template <typename tRet>
-	SQUID_NODISCARD TaskHandle<tRet> Run(const Task<tRet>& in_task) /// @private Illegal copy implementation
+	SQUID_NODISCARD TaskHandle<tRet> Run(const Task<tRet>&) /// @private Illegal copy implementation
 	{
 		static_assert(static_false<tRet>::value, "Cannot run an unmanaged task by copy (try Run(std::move(task)))");
 		return {};
@@ -120,7 +127,7 @@ public:
 		return weakTaskHandle;
 	}
 	template <typename tRet>
-	WeakTaskHandle RunManaged(const Task<tRet>& in_task) /// @private Illegal copy implementation
+	WeakTaskHandle RunManaged(const Task<tRet>&) /// @private Illegal copy implementation
 	{
 		static_assert(static_false<tRet>::value, "Cannot run a managed task by copy (try RunManaged(std::move(task)))");
 		return {};
@@ -139,10 +146,13 @@ public:
 	/// Call Task::Kill() on all tasks (managed + unmanaged)
 	void KillAllTasks()
 	{
-		m_tasks.clear(); // Destroying all the weak tasks implicitly destroys all internal tasks
+		// Move the task lists out before clearing them (killed tasks can run code that adds new tasks to this manager)
+		auto tasks = std::move(m_tasks);
+		auto strongRefs = std::move(m_strongRefs);
+		tasks.clear(); // Destroying all the weak tasks implicitly destroys all internal tasks
 
-		// No need to call Kill() on each TaskHandle in m_strongRefs
-		m_strongRefs.clear(); // Handles in the strong refs array only ever point to tasks in the now-cleared m_tasks array
+		// No need to call Kill() on each TaskHandle in strongRefs
+		strongRefs.clear(); // Handles in the strong refs array only ever point to tasks in the now-cleared tasks array
 	}
 
 	/// @brief Issue a stop request using @ref Task::RequestStop() on all active tasks (managed and unmanaged)
@@ -186,7 +196,7 @@ public:
 		m_tasks.resize(writeIdx);
 
 		// Prune strong tasks that are done
-		auto removeIt = m_strongRefs.erase(std::remove_if(m_strongRefs.begin(), m_strongRefs.end(), [](const auto& in_taskHandle) {
+		m_strongRefs.erase(std::remove_if(m_strongRefs.begin(), m_strongRefs.end(), [](const auto& in_taskHandle) {
 			return in_taskHandle.IsDone();
 		}), m_strongRefs.end());
 	}

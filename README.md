@@ -6,7 +6,7 @@ Project homepage available at https://squidtasks.plumfire.dev/.
 
 Full project and source code available at https://github.com/westquote/SquidTasks/.
 
-Full API documentation can be found at https://westquote.github.io/SquidTasks/.
+Full API documentation for 1.x can be found at https://squidtasks.plumfire.dev/docs/1.x/.
 
 Elliott Mahler's GDC 2022 talk on using coroutines in The Pathless ([C++ Coroutines are NOW!](https://gdcvault.com/play/1028064/C-Coroutines-are-NOW)) can be found on the GDC Vault.
 
@@ -185,19 +185,19 @@ This is the end of the tutorial documentation (for now)! If you made it this far
 ### APPENDIX A: Enabling Global Time Support
 Every game project has its own method of updating and measuring game time.  Most games feature multiple different "time-streams", such as "game time", "real time", "editor time", "paused time", "audio time", etc... Because of this, the Squid::Tasks library requires each time-sensitive awaiter (e.g. ```WaitSeconds()```, ```Timeout()```, etc) to be presented with a time-stream function that returns the current time in the desired time-stream. By convention, these time-streams are passed as functions into the final argument of time-sensitive awaiters.
 
-A final (optional) step of integrating Squid::Tasks is to enable global time support and implement a global Squid::GetTime() function.
+A final (optional) step of integrating Squid::Tasks is to enable global time support and implement a global GetGlobalTime() function.
 
-For less-complex projects it can be desirable to default to a "global time-stream" that removes the requirement to explicitly pass a time-stream function into time-sensitive awaiters. To enable this functionality, the user must set ```SQUID_ENABLE_GLOBAL_TIME``` in TasksConfig.h and implement a special function called Squid::GetTime(). Failure to define this function will result in a linker error.
+For less-complex projects it can be desirable to default to a "global time-stream" that removes the requirement to explicitly pass a time-stream function into time-sensitive awaiters. To enable this functionality, the user must set ```SQUID_ENABLE_GLOBAL_TIME``` in TasksConfig.h and implement a special function called GetGlobalTime(). Failure to define this function will result in a linker error.
 
-The Squid::GetTime() function should return a floating-point value representing the number of seconds since the program started running. Here is an example Squid::GetTime() function implementation from within the ```main.cpp``` file of a sample project:
+The GetGlobalTime() function should return a floating-point value representing the number of seconds since the program started running. Here is an example GetGlobalTime() function implementation from within the ```main.cpp``` file of a sample project:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~.cpp
 NAMESPACE_SQUID_BEGIN
-tTaskTime GetTime()
+tTaskTime GetGlobalTime()
 {
 	return (tTaskTime)TimeSystem::GetTime();
 }
 NAMESPACE_SQUID_END
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-It is recommended to save off the current time value at the start of each game frame, returning that saved value from within ```Squid::GetTime()```. The reason for this is that, within a single frame, you likely want all of the tasks to behave as if they are updating at the same time. By providing the same exact time value to all Tasks that are resumed within a given update, the software is more likely to behave in a stable and predictable manner.
+It is recommended to save off the current time value at the start of each game frame, returning that saved value from within ```GetGlobalTime()```. The reason for this is that, within a single frame, you likely want all of the tasks to behave as if they are updating at the same time. By providing the same exact time value to all Tasks that are resumed within a given update, the software is more likely to behave in a stable and predictable manner.

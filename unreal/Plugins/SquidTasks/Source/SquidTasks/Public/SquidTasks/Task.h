@@ -115,7 +115,7 @@ struct GetStopContext
 /// @} end of addtogroup Awaiters
 
 //--- Internal Implementation Header ---//
-#include "Private/TaskPrivate.h" // Internal use only! Do not move or include elsewhere!
+#include "Private/TaskPrivate.inl" // Internal use only! Do not move or include elsewhere!
 
 /// @addtogroup Tasks
 /// @{
@@ -211,7 +211,7 @@ public:
 	Task() /// Default constructor (constructs an invalid handle)
 	{
 	}
-	Task(nullptr_t) /// Null-pointer constructor (constructs an invalid handle)
+	Task(std::nullptr_t) /// Null-pointer constructor (constructs an invalid handle)
 	{
 	}
 	Task(TSharedPtr<tTaskInternal> in_taskInternal) /// @private
@@ -219,7 +219,7 @@ public:
 	{
 		AddRef();
 	}
-	Task(std::coroutine_handle<promise_type> in_coroHandle) /// @private
+	SQUID_NOINLINE Task(std::coroutine_handle<promise_type> in_coroHandle) /// @private
 		: m_taskInternal(MakeShared<tTaskInternal>(in_coroHandle))
 	{
 		AddRef();
@@ -235,7 +235,7 @@ public:
 	{
 		// NOTE: No need to alter logical reference here (this is a move)
 	}
-	Task& operator=(nullptr_t) noexcept /// Null-pointer assignment operator (makes the handle invalid)
+	Task& operator=(std::nullptr_t) noexcept /// Null-pointer assignment operator (makes the handle invalid)
 	{
 		RemoveRef(); // Remove logical reference from old internal task
 		m_taskInternal = nullptr;
@@ -244,18 +244,24 @@ public:
 	Task& operator=(const Task& in_otherTask) /// Copy assignment operator (TaskHandle/WeakTaskHandle only)
 	{
 		static_assert(IsCopyable(), "Cannot copy-assign Task/WeakTask (only TaskHandle/WeakTaskHandle)");
-		RemoveRef(); // Remove logical reference from our current internal task
-		m_taskInternal = in_otherTask.m_taskInternal;
-		AddRef();
+		if(this != &in_otherTask)
+		{
+			RemoveRef(); // Remove logical reference from our current internal task
+			m_taskInternal = in_otherTask.m_taskInternal;
+			AddRef();
+		}
 		return *this;
 	}
 	Task& operator=(Task&& in_otherTask) noexcept /// Move assignment operator
 	{
-		// If the internal task that we're about to move over can never be resumed again, kill it immediately
-		KillIfResumable();
-		RemoveRef(); // Remove logical reference from old internal task
-		// NOTE: No need to add logical reference here (this is a move)
-		m_taskInternal = MoveTemp(in_otherTask.m_taskInternal);
+		if(this != &in_otherTask)
+		{
+			// If the internal task that we're about to move over can never be resumed again, kill it immediately
+			KillIfResumable();
+			RemoveRef(); // Remove logical reference from old internal task
+			// NOTE: No need to add logical reference here (this is a move)
+			m_taskInternal = MoveTemp(in_otherTask.m_taskInternal);
+		}
 		return *this;
 	}
 	~Task() /// Destructor
@@ -293,7 +299,8 @@ public:
 		// NOTE: Killing a task immediately destroys the coroutine and all of the coroutine's local variables
 		if(IsValid())
 		{
-			m_taskInternal->Kill();
+			auto taskInternal = m_taskInternal; // Keeps the internal task alive while it is killed (its destructors may release this handle)
+			taskInternal->Kill();
 		}
 	}
 	NONVOID_ONLY TOptional<tRet> TakeReturnValue() /// Attempts to take the task's return value (throws error if return value is either orphaned or was already taken)
@@ -323,11 +330,11 @@ public:
 		return GetDebugName(in_formatter);
 	}
 #else
-	FString GetDebugName(TOptional<TaskDebugStackFormatter> in_formatter = {}) const /// @private
+	FString GetDebugName(TOptional<TaskDebugStackFormatter> = {}) const /// @private
 	{
 		return ""; // Returns an empty string when task debug is disabled
 	}
-	FString GetDebugStack(TOptional<TaskDebugStackFormatter> in_formatter = {}) const /// @private
+	FString GetDebugStack(TOptional<TaskDebugStackFormatter> = {}) const /// @private
 	{
 		return ""; // Returns an empty string when task debug is disabled
 	}
@@ -406,17 +413,18 @@ public:
 	}
 
 	// Cancel-If Methods
-	/// Returns wrapper task that kills this task when the given function returns true. Returns whether wrapped task was canceled.
+	/// Returns wrapper task that kills this task when the given function returns true. Returns whether wrapped task finished (false if it was canceled).
 	/// Task return value will be bool if wrapped task had void return type, otherwise TOptional<tRet>.
 	auto CancelIf(tTaskCancelFn in_cancelFn) &&
 	{
 		return CancelTaskIf(MoveTemp(*this), in_cancelFn);
 	}
-	/// Returns wrapper task that kills this task when a stop request is issued on it. Returns whether wrapped task was canceled.
+	/// Returns wrapper task that kills this task when a stop request is issued on it. Returns whether wrapped task finished (false if it was canceled).
 	/// Task return value will be bool if wrapped task had void return type, otherwise TOptional<tRet>.
-	auto CancelIfStopRequested() && /// 
+	auto CancelIfStopRequested() &&
 	{
-		return MoveTemp(*this).CancelIf([this] { return IsStopRequested(); });
+		WeakTaskHandle weakHandle = *this; // Taken before the move (a moved-from handle reads as stop-requested)
+		return MoveTemp(*this).CancelIf([weakHandle] { return weakHandle.IsStopRequested(); });
 	}
 	auto CancelIf(tTaskCancelFn in_cancelFn) & /// @private Illegal lvalue implementation
 	{
@@ -426,12 +434,13 @@ public:
 	auto CancelIfStopRequested() & /// @private Illegal lvalue implementation
 	{
 		static_assert(static_false<tRet>::value, "Cannot call CancelIfStopRequested() on an lvalue (try MoveTemp(task).CancelIfStopRequested())");
-		return MoveTemp(*this).CancelIf([this] { return IsStopRequested(); });
+		WeakTaskHandle weakHandle = *this; // Taken before the move (a moved-from handle reads as stop-requested)
+		return MoveTemp(*this).CancelIf([weakHandle] { return weakHandle.IsStopRequested(); });
 	}
 
 	// Stop-If Methods
 	/// @brief Returns wrapper task that requests a stop on this task when the given function returns true, then waits for the task to terminate (without timeout).
-	/// @details Task returns whether wrapped task was canceled. Task return value will be bool if wrapped task had void return type, otherwise TOptional<tRet>.
+	/// @details Task returns whether wrapped task finished. Task return value will be bool if wrapped task had void return type, otherwise TOptional<tRet>.
 	auto StopIf(tTaskCancelFn in_cancelFn) && /// Returns wrapper task that requests a stop on this task when the given function returns true
 	{
 		return StopTaskIf(MoveTemp(*this), in_cancelFn);
@@ -443,7 +452,7 @@ public:
 	}
 #if SQUID_ENABLE_GLOBAL_TIME
 	/// @brief Returns wrapper task that requests a stop on this task when the given function returns true, then waits for the task to terminate (with timeout in the global time-stream).
-	/// @details Task returns whether wrapped task was canceled. Task return value will be bool if wrapped task had void return type, otherwise TOptional<tRet>.
+	/// @details Task returns whether wrapped task finished (false if it timed-out). Task return value will be bool if wrapped task had void return type, otherwise TOptional<tRet>.
 	auto StopIf(tTaskCancelFn in_cancelFn, tTaskTime in_timeout) &&
 	{
 		// Cannot be called unless SQUID_ENABLE_GLOBAL_TIME has been set in TasksConfig.h.
@@ -467,7 +476,7 @@ public:
 	}
 #endif //SQUID_ENABLE_GLOBAL_TIME
 	/// @brief Returns wrapper task that requests a stop on this task when the given function returns true, then waits for the task to terminate (with timeout in a given time-stream).
-	/// @details Task returns whether wrapped task was canceled. Task return value will be bool if wrapped task had void return type, otherwise TOptional<tRet>.
+	/// @details Task returns whether wrapped task finished (false if it timed-out). Task return value will be bool if wrapped task had void return type, otherwise TOptional<tRet>.
 	template <typename tTimeFn>
 	auto StopIf(tTaskCancelFn in_cancelFn, tTaskTime in_timeout, tTimeFn in_timeFn) &&
 	{
@@ -523,7 +532,7 @@ private:
 	{
 		if(m_taskInternal)
 		{
-			if(RefType == eTaskRef::Strong)
+			if(IsStrong())
 			{
 				m_taskInternal->AddLogicalRef();
 			}
@@ -533,7 +542,7 @@ private:
 	{
 		if(m_taskInternal)
 		{
-			if(RefType == eTaskRef::Strong)
+			if(IsStrong())
 			{
 				m_taskInternal->RemoveLogicalRef();
 			}
@@ -583,21 +592,21 @@ private:
 ///	
 ///	For less-complex projects it can be desirable to default to a "global time-stream" that removes the requirement to explicitly pass a
 /// time-stream function into time-sensitive awaiters. To enable this functionality, the user must set ```SQUID_ENABLE_GLOBAL_TIME``` in
-/// TasksConfig.h and implement a special function called Squid::GetTime(). Failure to define this function will result in a linker error.
+/// TasksConfig.h and implement a special function called GetGlobalTime(). Failure to define this function will result in a linker error.
 ///	
-///	The Squid::GetTime() function should return a floating-point value representing the number of seconds since the program started running.
-/// Here is an example Squid::GetTime() function implementation from within the ```main.cpp``` file of a sample project:
+///	The GetGlobalTime() function should return a floating-point value representing the number of seconds since the program started running.
+/// Here is an example GetGlobalTime() function implementation from within the ```main.cpp``` file of a sample project:
 ///	
 ///	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~.cpp
 ///	NAMESPACE_SQUID_BEGIN
-///	tTaskTime GetTime()
+///	tTaskTime GetGlobalTime()
 ///	{
 ///		return (tTaskTime)TimeSystem::GetTime();
 ///	}
 ///	NAMESPACE_SQUID_END
 ///	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ///	
-/// It is recommended to save off the current time value at the start of each game frame, returning that saved value from within ```Squid::GetTime()```.
+/// It is recommended to save off the current time value at the start of each game frame, returning that saved value from within ```GetGlobalTime()```.
 /// The reason for this is that, within a single frame, you likely want all of the tasks to behave as if they are updating at the same time.
 /// By providing the same exact time value to all Tasks that are resumed within a given update, the software is more likely to behave in a stable
 /// and predictable manner.
@@ -847,7 +856,7 @@ Task<tValue> Select(TArray<TaskSelectEntry<tValue>> in_entries)
 
 	while(true)
 	{
-		for(size_t i = 0; i < in_entries.Num(); ++i)
+		for(int32 i = 0; i < in_entries.Num(); ++i)
 		{
 			if(in_entries[i].Resume() == eTaskStatus::Done)
 			{
@@ -900,7 +909,7 @@ Task<tTaskTime> WaitSeconds(tTaskTime in_seconds, tTimeFn in_timeFn)
 	co_return in_timeFn() - startTime - in_seconds;
 }
 
-/// Awaiter function that wraps a given task, canceling it after N seconds in a given time-stream. Returns whether it timed-out or not.
+/// Awaiter function that wraps a given task, canceling it after N seconds in a given time-stream. Returns whether it finished (false if it timed-out).
 template <typename tRet, typename tTimeFn>
 auto Timeout(Task<tRet>&& in_task, tTaskTime in_seconds, tTimeFn in_timeFn)
 {
@@ -928,7 +937,7 @@ inline Task<tTaskTime> WaitSeconds(tTaskTime in_seconds)
 	return WaitSeconds(in_seconds, GlobalTime());
 }
 
-/// Awaiter function that wraps a given task, canceling it after N seconds in the global time-stream. Returns whether it timed-out or not. (requires SQUID_ENABLE_GLOBAL_TIME)
+/// Awaiter function that wraps a given task, canceling it after N seconds in the global time-stream. Returns whether it finished (false if it timed-out). (requires SQUID_ENABLE_GLOBAL_TIME)
 template <typename tRet>
 auto Timeout(Task<tRet>&& in_task, tTaskTime in_seconds)
 {
@@ -1069,7 +1078,7 @@ Task<TOptional<tRet>> StopIfImpl(Task<tRet> in_task, tTaskCancelFn in_cancelFn, 
 		if(!in_task.IsStopRequested() && in_cancelFn && in_cancelFn())
 		{
 			in_task.RequestStop();
-			if(in_timeout)
+			if(in_timeout.IsSet())
 			{
 				co_return co_await Timeout(MoveTemp(in_task), in_timeout.GetValue(), in_timeFn);
 			}
@@ -1149,3 +1158,15 @@ auto StopTaskIf(Task<tRet, RefType, Resumable>&& in_task, tTaskCancelFn in_cance
 /// @} end of addtogroup Tasks
 
 NAMESPACE_SQUID_END
+
+// Makes WaitUntil()/WaitWhile() usable both unqualified and as Squid::WaitUntil()/Squid::WaitWhile() (with or without SQUID_ENABLE_NAMESPACE)
+#if SQUID_ENABLE_NAMESPACE
+using Squid::_WaitUntil;
+using Squid::_WaitWhile;
+#else
+namespace Squid
+{
+using ::_WaitUntil;
+using ::_WaitWhile;
+}
+#endif //SQUID_ENABLE_NAMESPACE

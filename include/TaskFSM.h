@@ -6,6 +6,11 @@
 /// 
 /// Full documentation of the TaskFSM system coming soon!
 
+#include <algorithm>
+#include <cstdint>
+#include <string>
+#include <vector>
+
 #include "Task.h"
 
 NAMESPACE_SQUID_BEGIN
@@ -39,7 +44,7 @@ struct TransitionDebugData /// Debug state transition data (used by debug-state-
 using tOnStateTransitionFn = std::function<void()>; ///< State transition callback function type (non-debug)
 using tDebugStateTransitionFn = std::function<void(TransitionDebugData)>; ///< Debug state transition callback function type
 
-#include "Private/TaskFSMPrivate.h" // Internal use only! Do not include elsewhere!
+#include "Private/TaskFSMPrivate.inl" // Internal use only! Do not include elsewhere!
 
 //--- State Handle ---//
 template<class tStateInput, class tStateConstructorFn>
@@ -53,7 +58,7 @@ public:
 
 	StateId GetId() const ///< Get the ID of this state
 	{
-		return m_state ? m_state->idx : StateId{};
+		return m_state ? m_state->stateId : StateId{};
 	}
 
 // SFINAE Template Declaration Macros (#defines)
@@ -219,21 +224,18 @@ void TaskFSM::StateLinks(const FSM::StateHandle<tStateInput, tStateConstructorFn
 	SQUID_RUNTIME_CHECK(m_states[stateIdx].outgoingLinks.size() == 0, "Cannot set outgoing links more than once for each state");
 
 	// Validate that there are exactly 0 or 1 unconditional OnComplete links (there may be any number of other OnComplete links, but only one with no condition)
-	int32_t numOnCompleteLinks = 0;
 	int32_t numOnCompleteLinks_Unconditional = 0;
 	for(const FSM::LinkHandle& link : in_outgoingLinks)
 	{
 		if(link.IsOnCompleteLink())
 		{
 			SQUID_RUNTIME_CHECK(numOnCompleteLinks_Unconditional == 0, "Cannot call OnCompleteLink() after calling OnCompleteLink() with no conditions (unreachable link)");
-			++numOnCompleteLinks;
 			if(!link.HasCondition())
 			{
 				numOnCompleteLinks_Unconditional++;
 			}
 		}
 	}
-	SQUID_RUNTIME_CHECK(numOnCompleteLinks == 0 || numOnCompleteLinks_Unconditional > 0, "More than one unconditional OnCompleteLink() was set");
 
 	// Set the outgoing links for the origin state
 	m_states[stateIdx].outgoingLinks = std::move(in_outgoingLinks);
@@ -257,7 +259,7 @@ inline void TaskFSM::EntryLinks(std::vector<FSM::LinkHandle> in_entryLinks)
 inline std::optional<FSM::TransitionEvent> TaskFSM::EvaluateLinks(FSM::StateId in_curStateId, bool in_isCurrentStateComplete, const tOnStateTransitionFn& in_onTransitionFn) const
 {
 	// Determine whether to use entry links or state-specific outgoing links
-	const std::vector<FSM::LinkHandle>& links = (in_curStateId.idx < m_states.size()) ? m_states[in_curStateId.idx].outgoingLinks : m_entryLinks;
+	const std::vector<FSM::LinkHandle>& links = ((size_t)in_curStateId.idx < m_states.size()) ? m_states[in_curStateId.idx].outgoingLinks : m_entryLinks;
 
 	// Find the first valid transition from the current state
 	for(const FSM::LinkHandle& link : links)
@@ -281,7 +283,7 @@ inline Task<FSM::StateId> TaskFSM::Run(tOnStateTransitionFn in_onTransitionFn, t
 	// Custom debug task name logic
 	TASK_NAME(__FUNCTION__, [this, &curStateId, &task]
 	{
-		const std::string stateName = (curStateId.idx < m_states.size()) ? m_states[curStateId.idx].debugName : "";
+		const std::string stateName = ((size_t)curStateId.idx < m_states.size()) ? m_states[curStateId.idx].debugName : "";
 		return stateName + " -- " + task.GetDebugStack();
 	});
 
@@ -310,7 +312,7 @@ inline Task<FSM::StateId> TaskFSM::Run(tOnStateTransitionFn in_onTransitionFn, t
 			{
 				co_return newStateId;
 			}
-			SQUID_RUNTIME_CHECK(newStateId.idx < m_states.size(), "It should be logically impossible to get an invalid state to this point");
+			SQUID_RUNTIME_CHECK((size_t)newStateId.idx < m_states.size(), "It should be logically impossible to get an invalid state to this point");
 
 			// Begin running new state (implicitly killing old state)
 			curStateId = newStateId;
